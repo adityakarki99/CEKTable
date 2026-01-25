@@ -1,180 +1,470 @@
+/* ============================================
+   Clay.com Inspired Table Styles
+   Modern spreadsheet-like design with purple accents
+   ============================================ */
+
 .data-table-container {
   width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Toolbar */
 .table-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  margin-bottom: 12px;
+  gap: 16px;
+  padding: 0 4px;
 }
 
 .global-filter {
-  min-width: 250px;
+  min-width: 280px;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.global-filter:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.global-filter::placeholder {
+  color: #94a3b8;
 }
 
 .selection-info {
-  color: #646cff;
-  font-size: 0.9em;
+  color: #8b5cf6;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(139, 92, 246, 0.08);
+  padding: 6px 12px;
+  border-radius: 6px;
 }
 
+/* Table Wrapper - Clay's spreadsheet container */
 .table-wrapper {
   overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #3a3a5a;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
+/* Main Table */
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9em;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
+/* Cell Styles - Spreadsheet grid */
 .data-table th,
 .data-table td {
-  padding: 0.75rem 1rem;
+  padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #3a3a5a;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
 }
 
+.data-table th:last-child,
+.data-table td:last-child {
+  border-right: none;
+}
+
+/* Header Styles */
 .data-table th {
-  background-color: #1e1e3f;
+  background-color: #fafbfc;
   font-weight: 600;
-  color: #fff;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .data-table th.sortable {
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .data-table th.sortable:hover {
-  background-color: #2a2a4a;
+  background-color: #f1f5f9;
+  color: #475569;
 }
 
 .th-content {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
 .sort-indicator {
-  color: #646cff;
+  color: #8b5cf6;
+  font-size: 11px;
+  font-weight: 700;
 }
 
+/* Row Styles */
 .data-table tbody tr {
-  transition: background-color 0.15s;
+  transition: background-color 0.1s ease;
 }
 
 .data-table tbody tr:hover {
-  background-color: rgba(100, 108, 255, 0.1);
+  background-color: #f8fafc;
 }
 
 .data-table tbody tr.selected {
-  background-color: rgba(100, 108, 255, 0.2);
+  background-color: rgba(139, 92, 246, 0.06);
+}
+
+.data-table tbody tr.selected:hover {
+  background-color: rgba(139, 92, 246, 0.1);
 }
 
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-/* Status badges */
+/* Cell content */
+.data-table td {
+  color: #334155;
+  font-weight: 400;
+}
+
+/* Numeric cells */
+.data-table td[data-type="number"] {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   Status Badges - Clay-style tags
+   ============================================ */
 .status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.8em;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
   font-weight: 500;
+  gap: 6px;
+}
+
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 .status-badge.in-stock {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.status-badge.in-stock::before {
+  background-color: #10b981;
 }
 
 .status-badge.low-stock {
-  background-color: rgba(234, 179, 8, 0.2);
-  color: #eab308;
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.status-badge.low-stock::before {
+  background-color: #f59e0b;
 }
 
 .status-badge.out-of-stock {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
-/* Pagination */
+.status-badge.out-of-stock::before {
+  background-color: #ef4444;
+}
+
+/* ============================================
+   Pagination - Clay-style controls
+   ============================================ */
 .pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: 16px;
+  padding: 0 4px;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
 }
 
 .pagination-info {
-  color: #888;
-  font-size: 0.9em;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 4px;
 }
 
 .pagination-controls button {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85em;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
   min-width: 36px;
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
 }
 
 .pagination-controls button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  background-color: #f8fafc;
 }
 
 .page-info {
-  margin: 0 0.5rem;
-  font-size: 0.9em;
-  color: #888;
+  margin: 0 8px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-/* Checkbox styling */
+/* ============================================
+   Checkbox Styling - Clay purple accent
+   ============================================ */
 .row-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
-  accent-color: #646cff;
+  accent-color: #8b5cf6;
+  border-radius: 4px;
 }
 
-/* Light mode */
-@media (prefers-color-scheme: light) {
+/* Custom checkbox styling */
+.row-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 4px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.row-checkbox:hover {
+  border-color: #8b5cf6;
+}
+
+.row-checkbox:checked {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.row-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.row-checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+/* ============================================
+   Row Number Column (optional)
+   ============================================ */
+.row-number {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ============================================
+   Column Resize Handle (for future use)
+   ============================================ */
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.resize-handle:hover {
+  background-color: #8b5cf6;
+}
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  .global-filter {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .global-filter:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15);
+  }
+
+  .global-filter::placeholder {
+    color: #64748b;
+  }
+
+  .selection-info {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+  }
+
   .table-wrapper {
-    border-color: #ddd;
+    background-color: #0f172a;
+    border-color: #334155;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .data-table th,
   .data-table td {
-    border-bottom-color: #eee;
+    border-bottom-color: #1e293b;
+    border-right-color: #1e293b;
   }
 
   .data-table th {
-    background-color: #f8f8ff;
-    color: #333;
+    background-color: #0f172a;
+    color: #94a3b8;
   }
 
   .data-table th.sortable:hover {
-    background-color: #f0f0ff;
+    background-color: #1e293b;
+    color: #e2e8f0;
   }
 
   .data-table tbody tr:hover {
-    background-color: rgba(100, 108, 255, 0.05);
+    background-color: #1e293b;
   }
 
   .data-table tbody tr.selected {
-    background-color: rgba(100, 108, 255, 0.1);
+    background-color: rgba(139, 92, 246, 0.12);
+  }
+
+  .data-table tbody tr.selected:hover {
+    background-color: rgba(139, 92, 246, 0.18);
+  }
+
+  .data-table td {
+    color: #e2e8f0;
+  }
+
+  /* Dark mode status badges */
+  .status-badge.in-stock {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+  }
+
+  .status-badge.low-stock {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+  }
+
+  .status-badge.out-of-stock {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+
+  /* Dark mode pagination */
+  .pagination-info {
+    color: #94a3b8;
+  }
+
+  .pagination-controls button {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+
+  .pagination-controls button:hover:not(:disabled) {
+    background-color: #334155;
+    border-color: #475569;
+  }
+
+  .pagination-controls button:disabled {
+    background-color: #0f172a;
+    opacity: 0.4;
+  }
+
+  .page-info {
+    color: #94a3b8;
+  }
+
+  /* Dark mode checkbox */
+  .row-checkbox {
+    background-color: #1e293b;
+    border-color: #475569;
+  }
+
+  .row-checkbox:hover {
+    border-color: #a78bfa;
   }
 }

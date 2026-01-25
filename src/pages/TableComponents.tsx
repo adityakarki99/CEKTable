@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom'
+import '../components/table.css'
 
 function TableComponents() {
   return (
     <div className="page">
       <div className="page-header">
-        <Link to="/" className="back-link">&larr; Back</Link>
+        <Link to="/" className="back-link">&larr; Back to Home</Link>
         <h1>Table Components</h1>
-        <p>View individual table components and styling options.</p>
+        <p>Clay-inspired UI components for building modern data tables.</p>
       </div>
 
       <div className="components-grid">
         {/* Status Badges */}
         <section className="component-section">
           <h2>Status Badges</h2>
-          <p className="section-desc">Visual indicators for inventory status</p>
+          <p className="section-desc">Visual indicators with dot prefix for inventory status</p>
           <div className="component-demo">
             <span className="status-badge in-stock">In Stock</span>
             <span className="status-badge low-stock">Low Stock</span>
@@ -28,27 +29,41 @@ function TableComponents() {
 
         {/* Buttons */}
         <section className="component-section">
-          <h2>Pagination Buttons</h2>
-          <p className="section-desc">Navigation controls for paged data</p>
+          <h2>Buttons</h2>
+          <p className="section-desc">Primary and secondary button variants</p>
           <div className="component-demo">
-            <button>{'<<'}</button>
-            <button>{'<'}</button>
-            <span style={{ margin: '0 0.5rem', color: '#888' }}>Page 1 of 5</span>
-            <button>{'>'}</button>
-            <button>{'>>'}</button>
+            <button>Primary Action</button>
+            <button className="secondary">Secondary</button>
+          </div>
+          <div className="component-demo" style={{ marginTop: '0.75rem' }}>
+            <button disabled>Disabled</button>
+          </div>
+        </section>
+
+        {/* Pagination Controls */}
+        <section className="component-section">
+          <h2>Pagination</h2>
+          <p className="section-desc">Navigation controls for paged data</p>
+          <div className="component-demo pagination-demo">
+            <div className="pagination-controls">
+              <button className="secondary">{'<<'}</button>
+              <button className="secondary">{'<'}</button>
+              <span className="page-info">Page 1 of 5</span>
+              <button className="secondary">{'>'}</button>
+              <button className="secondary">{'>>'}</button>
+            </div>
           </div>
         </section>
 
         {/* Input Fields */}
         <section className="component-section">
-          <h2>Filter Input</h2>
-          <p className="section-desc">Global search across all columns</p>
+          <h2>Search Input</h2>
+          <p className="section-desc">Global search with focus ring</p>
           <div className="component-demo">
             <input
               type="text"
               placeholder="Search all columns..."
               className="global-filter"
-              style={{ minWidth: '250px' }}
             />
           </div>
         </section>
@@ -56,53 +71,102 @@ function TableComponents() {
         {/* Checkboxes */}
         <section className="component-section">
           <h2>Row Selection</h2>
-          <p className="section-desc">Checkboxes for selecting rows</p>
+          <p className="section-desc">Custom checkboxes with purple accent</p>
           <div className="component-demo">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label className="checkbox-label">
               <input type="checkbox" className="row-checkbox" />
               <span>Unselected row</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label className="checkbox-label">
               <input type="checkbox" className="row-checkbox" defaultChecked />
               <span>Selected row</span>
             </label>
           </div>
         </section>
 
-        {/* Table Header */}
+        {/* Selection Info Badge */}
         <section className="component-section">
-          <h2>Table Header</h2>
-          <p className="section-desc">Sortable column headers with indicators</p>
+          <h2>Selection Info</h2>
+          <p className="section-desc">Shows count of selected rows</p>
           <div className="component-demo">
-            <div className="demo-table-header">
-              <div className="demo-th">SKU</div>
-              <div className="demo-th sortable">
-                Name <span className="sort-indicator">↑</span>
-              </div>
-              <div className="demo-th sortable">
-                Qty <span className="sort-indicator">↓</span>
-              </div>
-              <div className="demo-th">Status</div>
+            <span className="selection-info">3 rows selected</span>
+          </div>
+        </section>
+
+        {/* Table Header */}
+        <section className="component-section full-width">
+          <h2>Table Header</h2>
+          <p className="section-desc">Sortable column headers with uppercase labels and sort indicators</p>
+          <div className="component-demo">
+            <div className="table-wrapper" style={{ maxWidth: '600px' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}>
+                      <input type="checkbox" className="row-checkbox" />
+                    </th>
+                    <th className="sortable">
+                      <div className="th-content">SKU</div>
+                    </th>
+                    <th className="sortable">
+                      <div className="th-content">
+                        Product Name
+                        <span className="sort-indicator">↑</span>
+                      </div>
+                    </th>
+                    <th className="sortable">
+                      <div className="th-content">
+                        Qty
+                        <span className="sort-indicator">↓</span>
+                      </div>
+                    </th>
+                    <th>
+                      <div className="th-content">Status</div>
+                    </th>
+                  </tr>
+                </thead>
+              </table>
             </div>
           </div>
         </section>
 
-        {/* Table Row */}
-        <section className="component-section">
+        {/* Table Rows */}
+        <section className="component-section full-width">
           <h2>Table Rows</h2>
           <p className="section-desc">Data rows with hover and selection states</p>
           <div className="component-demo">
-            <div className="demo-table-row">
-              <div className="demo-td">SKU-001</div>
-              <div className="demo-td">Wireless Mouse</div>
-              <div className="demo-td">150</div>
-              <div className="demo-td"><span className="status-badge in-stock">In Stock</span></div>
-            </div>
-            <div className="demo-table-row selected">
-              <div className="demo-td">SKU-002</div>
-              <div className="demo-td">Keyboard</div>
-              <div className="demo-td">30</div>
-              <div className="demo-td"><span className="status-badge low-stock">Low Stock</span></div>
+            <div className="table-wrapper" style={{ maxWidth: '700px' }}>
+              <table className="data-table">
+                <tbody>
+                  <tr>
+                    <td style={{ width: '40px' }}>
+                      <input type="checkbox" className="row-checkbox" />
+                    </td>
+                    <td>SKU-001</td>
+                    <td>Wireless Mouse Pro</td>
+                    <td>150</td>
+                    <td><span className="status-badge in-stock">In Stock</span></td>
+                  </tr>
+                  <tr className="selected">
+                    <td style={{ width: '40px' }}>
+                      <input type="checkbox" className="row-checkbox" defaultChecked />
+                    </td>
+                    <td>SKU-002</td>
+                    <td>Mechanical Keyboard</td>
+                    <td>30</td>
+                    <td><span className="status-badge low-stock">Low Stock</span></td>
+                  </tr>
+                  <tr>
+                    <td style={{ width: '40px' }}>
+                      <input type="checkbox" className="row-checkbox" />
+                    </td>
+                    <td>SKU-003</td>
+                    <td>USB-C Hub</td>
+                    <td>0</td>
+                    <td><span className="status-badge out-of-stock">Out of Stock</span></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -110,31 +174,66 @@ function TableComponents() {
         {/* Color Palette */}
         <section className="component-section full-width">
           <h2>Color Palette</h2>
-          <p className="section-desc">Theme colors used throughout the table</p>
+          <p className="section-desc">Clay-inspired purple theme colors</p>
           <div className="color-palette">
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#646cff' }}></div>
-              <span>Primary<br/>#646cff</span>
+            <div className="color-group">
+              <h3>Primary</h3>
+              <div className="color-row">
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#8b5cf6' }}></div>
+                  <span>Violet<br/>#8b5cf6</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#a78bfa' }}></div>
+                  <span>Violet Light<br/>#a78bfa</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#7c3aed' }}></div>
+                  <span>Violet Dark<br/>#7c3aed</span>
+                </div>
+              </div>
             </div>
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#22c55e' }}></div>
-              <span>Success<br/>#22c55e</span>
+            <div className="color-group">
+              <h3>Status</h3>
+              <div className="color-row">
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#10b981' }}></div>
+                  <span>Success<br/>#10b981</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#f59e0b' }}></div>
+                  <span>Warning<br/>#f59e0b</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#ef4444' }}></div>
+                  <span>Danger<br/>#ef4444</span>
+                </div>
+              </div>
             </div>
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#eab308' }}></div>
-              <span>Warning<br/>#eab308</span>
-            </div>
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#ef4444' }}></div>
-              <span>Danger<br/>#ef4444</span>
-            </div>
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#1e1e3f' }}></div>
-              <span>Header BG<br/>#1e1e3f</span>
-            </div>
-            <div className="color-swatch">
-              <div className="swatch" style={{ backgroundColor: '#3a3a5a' }}></div>
-              <span>Border<br/>#3a3a5a</span>
+            <div className="color-group">
+              <h3>Neutrals (Slate)</h3>
+              <div className="color-row">
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#f8fafc' }}></div>
+                  <span>50<br/>#f8fafc</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#e2e8f0' }}></div>
+                  <span>200<br/>#e2e8f0</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#64748b' }}></div>
+                  <span>500<br/>#64748b</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#1e293b' }}></div>
+                  <span>800<br/>#1e293b</span>
+                </div>
+                <div className="color-swatch">
+                  <div className="swatch" style={{ backgroundColor: '#0f172a' }}></div>
+                  <span>900<br/>#0f172a</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -154,25 +253,27 @@ function TableComponents() {
         .back-link {
           display: inline-block;
           margin-bottom: 1rem;
-          font-size: 0.9em;
+          font-size: 0.875rem;
         }
 
         .page-header p {
-          color: #888;
           margin: 0;
         }
 
         .components-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 1.5rem;
         }
 
         .component-section {
-          background: rgba(30, 30, 63, 0.5);
+          background: white;
           border-radius: 12px;
           padding: 1.5rem;
-          border: 1px solid #3a3a5a;
+          border: 1px solid #e2e8f0;
+          box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.04),
+            0 4px 12px rgba(0, 0, 0, 0.03);
         }
 
         .component-section.full-width {
@@ -180,13 +281,12 @@ function TableComponents() {
         }
 
         .component-section h2 {
-          font-size: 1.1em;
+          font-size: 1rem;
           margin: 0 0 0.25rem;
         }
 
         .section-desc {
-          color: #888;
-          font-size: 0.85em;
+          font-size: 0.8rem;
           margin: 0 0 1rem;
         }
 
@@ -195,69 +295,68 @@ function TableComponents() {
           flex-wrap: wrap;
           gap: 0.75rem;
           align-items: center;
-          padding: 1rem;
-          background: rgba(0, 0, 0, 0.2);
+          padding: 1.25rem;
+          background: #f8fafc;
           border-radius: 8px;
+          border: 1px solid #f1f5f9;
+        }
+
+        .pagination-demo {
+          justify-content: center;
+        }
+
+        .pagination-demo .pagination-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .pagination-demo button {
+          padding: 0.5rem 0.75rem;
+          min-width: 36px;
+        }
+
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          font-size: 0.875rem;
+          color: #334155;
         }
 
         .code-block {
           margin-top: 1rem;
           padding: 1rem;
-          background: #0d0d1a;
-          border-radius: 6px;
+          background: #0f172a;
+          border-radius: 8px;
           overflow-x: auto;
         }
 
         .code-block code {
-          font-family: 'Monaco', 'Menlo', monospace;
-          font-size: 0.8em;
-          color: #a0a0ff;
+          font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+          font-size: 0.75rem;
+          color: #a78bfa;
           white-space: pre;
-        }
-
-        /* Demo table elements */
-        .demo-table-header {
-          display: flex;
-          background: #1e1e3f;
-          border-radius: 6px;
-          overflow: hidden;
-        }
-
-        .demo-th {
-          padding: 0.75rem 1rem;
-          font-weight: 600;
-          font-size: 0.9em;
-        }
-
-        .demo-th.sortable {
-          cursor: pointer;
-        }
-
-        .demo-table-row {
-          display: flex;
-          border-bottom: 1px solid #3a3a5a;
-          transition: background-color 0.15s;
-        }
-
-        .demo-table-row:last-child {
-          border-bottom: none;
-        }
-
-        .demo-table-row:hover {
-          background: rgba(100, 108, 255, 0.1);
-        }
-
-        .demo-table-row.selected {
-          background: rgba(100, 108, 255, 0.2);
-        }
-
-        .demo-td {
-          padding: 0.75rem 1rem;
-          font-size: 0.9em;
+          line-height: 1.6;
         }
 
         /* Color palette */
         .color-palette {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .color-group h3 {
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #64748b;
+          margin-bottom: 0.75rem;
+        }
+
+        .color-row {
           display: flex;
           flex-wrap: wrap;
           gap: 1rem;
@@ -271,77 +370,45 @@ function TableComponents() {
         }
 
         .swatch {
-          width: 60px;
-          height: 60px;
-          border-radius: 8px;
-          border: 2px solid rgba(255, 255, 255, 0.1);
+          width: 56px;
+          height: 56px;
+          border-radius: 10px;
+          box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.1),
+            inset 0 0 0 1px rgba(0, 0, 0, 0.05);
         }
 
         .color-swatch span {
-          font-size: 0.75em;
+          font-size: 0.7rem;
           text-align: center;
-          color: #888;
+          color: #64748b;
+          line-height: 1.4;
         }
 
-        /* Status badge styles (imported from table.css context) */
-        .status-badge {
-          display: inline-block;
-          padding: 0.25rem 0.6rem;
-          border-radius: 12px;
-          font-size: 0.8em;
-          font-weight: 500;
-        }
-
-        .status-badge.in-stock {
-          background-color: rgba(34, 197, 94, 0.2);
-          color: #22c55e;
-        }
-
-        .status-badge.low-stock {
-          background-color: rgba(234, 179, 8, 0.2);
-          color: #eab308;
-        }
-
-        .status-badge.out-of-stock {
-          background-color: rgba(239, 68, 68, 0.2);
-          color: #ef4444;
-        }
-
-        .sort-indicator {
-          color: #646cff;
-        }
-
-        .row-checkbox {
-          width: 18px;
-          height: 18px;
-          cursor: pointer;
-          accent-color: #646cff;
-        }
-
-        @media (prefers-color-scheme: light) {
+        /* Dark mode overrides */
+        @media (prefers-color-scheme: dark) {
           .component-section {
-            background: rgba(248, 248, 255, 0.8);
-            border-color: #ddd;
+            background: #1e293b;
+            border-color: #334155;
           }
 
           .component-demo {
-            background: rgba(0, 0, 0, 0.03);
+            background: #0f172a;
+            border-color: #1e293b;
+          }
+
+          .checkbox-label {
+            color: #e2e8f0;
           }
 
           .code-block {
-            background: #f5f5ff;
-          }
-
-          .code-block code {
-            color: #5050aa;
-          }
-
-          .demo-table-header {
-            background: #f8f8ff;
+            background: #020617;
           }
 
           .swatch {
-            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow:
+              0 1px 3px rgba(0, 0, 0, 0.3),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.05);
           }
         }
       `}</style>
