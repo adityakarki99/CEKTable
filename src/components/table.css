@@ -258,25 +258,22 @@
    Checkbox Styling - Clay purple accent
    ============================================ */
 .row-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #8b5cf6;
-  border-radius: 4px;
-}
-
-/* Custom checkbox styling */
-.row-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  flex-shrink: 0;
   border: 1.5px solid #d1d5db;
   border-radius: 4px;
   background-color: #ffffff;
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
+  box-sizing: border-box;
 }
 
 .row-checkbox:hover {
