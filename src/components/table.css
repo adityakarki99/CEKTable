@@ -730,30 +730,30 @@
   transition: all 0.15s ease;
   position: relative;
   box-sizing: border-box;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .row-checkbox:hover {
   border-color: #8b5cf6;
 }
 
-.row-checkbox:checked {
+.row-checkbox[data-state='checked'],
+.row-checkbox[data-state='indeterminate'] {
   background-color: #8b5cf6;
   border-color: #8b5cf6;
 }
 
-.row-checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 4.5px;
-  top: 1.5px;
-  width: 4px;
-  height: 8px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+.row-checkbox-indicator {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.row-checkbox:focus {
+.row-checkbox:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }

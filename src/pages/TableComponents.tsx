@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Checkbox } from '../components/Checkbox'
 import '../components/table.css'
 
 function TableComponents() {
@@ -74,11 +75,11 @@ function TableComponents() {
           <p className="section-desc">Custom checkboxes with purple accent</p>
           <div className="component-demo">
             <label className="checkbox-label">
-              <input type="checkbox" className="row-checkbox" />
+              <Checkbox aria-label="Unselected row" />
               <span>Unselected row</span>
             </label>
             <label className="checkbox-label">
-              <input type="checkbox" className="row-checkbox" defaultChecked />
+              <Checkbox aria-label="Selected row" defaultChecked />
               <span>Selected row</span>
             </label>
           </div>
@@ -103,7 +104,7 @@ function TableComponents() {
                 <thead>
                   <tr>
                     <th style={{ width: '40px' }}>
-                      <input type="checkbox" className="row-checkbox" />
+                      <Checkbox aria-label="Select all rows" />
                     </th>
                     <th className="sortable">
                       <div className="th-content">SKU</div>
@@ -140,7 +141,7 @@ function TableComponents() {
                 <tbody>
                   <tr>
                     <td style={{ width: '40px' }}>
-                      <input type="checkbox" className="row-checkbox" />
+                      <Checkbox aria-label="Select row" />
                     </td>
                     <td>SKU-001</td>
                     <td>Wireless Mouse Pro</td>
@@ -149,7 +150,7 @@ function TableComponents() {
                   </tr>
                   <tr className="selected">
                     <td style={{ width: '40px' }}>
-                      <input type="checkbox" className="row-checkbox" defaultChecked />
+                      <Checkbox aria-label="Select row" defaultChecked />
                     </td>
                     <td>SKU-002</td>
                     <td>Mechanical Keyboard</td>
@@ -158,7 +159,7 @@ function TableComponents() {
                   </tr>
                   <tr>
                     <td style={{ width: '40px' }}>
-                      <input type="checkbox" className="row-checkbox" />
+                      <Checkbox aria-label="Select row" />
                     </td>
                     <td>SKU-003</td>
                     <td>USB-C Hub</td>

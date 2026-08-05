@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../components/DataTable'
+import { Checkbox } from '../components/Checkbox'
 import { inventoryData } from '../data/inventory'
 import type { InventoryItem } from '../data/inventory'
 
@@ -11,19 +12,17 @@ function TableDemo() {
       {
         id: 'select',
         header: ({ table }) => (
-          <input
-            type="checkbox"
-            className="row-checkbox"
-            checked={table.getIsAllRowsSelected()}
-            onChange={table.getToggleAllRowsSelectedHandler()}
+          <Checkbox
+            checked={table.getIsAllRowsSelected() ? true : table.getIsSomeRowsSelected() ? 'indeterminate' : false}
+            onCheckedChange={(checked) => table.toggleAllRowsSelected(checked)}
+            aria-label="Select all rows"
           />
         ),
         cell: ({ row }) => (
-          <input
-            type="checkbox"
-            className="row-checkbox"
+          <Checkbox
             checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
+            onCheckedChange={(checked) => row.toggleSelected(checked)}
+            aria-label="Select row"
           />
         ),
         size: 40,

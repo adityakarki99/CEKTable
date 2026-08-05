@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,6 +15,7 @@ import type {
   ColumnSizingState,
   Row,
 } from '@tanstack/react-table'
+import { Checkbox } from './Checkbox'
 import './table.css'
 
 // AI Column Types
@@ -211,11 +212,10 @@ function DataCard<T>({
     <div className={`data-card ${isSelected ? 'selected' : ''}`}>
       {enableSelection && (
         <div className="card-select">
-          <input
-            type="checkbox"
-            className="row-checkbox"
+          <Checkbox
             checked={isSelected}
-            onChange={onToggleSelect}
+            onCheckedChange={onToggleSelect}
+            aria-label="Select row"
           />
         </div>
       )}
@@ -223,6 +223,7 @@ function DataCard<T>({
         {row.getVisibleCells().map((cell) => {
           const columnDef = cell.column.columnDef
           if (cell.column.id === 'select') return null
+          if (aiColumns.some(aiCol => aiCol.id === cell.column.id)) return null
 
           return (
             <div key={cell.id} className="card-field">
@@ -297,7 +298,7 @@ export function DataTable<T>({
   }, [])
 
   // Combine initial columns with AI columns
-  const allColumns: ColumnDef<T, unknown>[] = [
+  const allColumns: ColumnDef<T, unknown>[] = useMemo(() => [
     ...initialColumns,
     ...aiColumns.map(aiCol => ({
       id: aiCol.id,
@@ -327,7 +328,7 @@ export function DataTable<T>({
       size: 180,
       enableSorting: false,
     }))
-  ]
+  ], [initialColumns, aiColumns, removeAIColumn])
 
   const table = useReactTable({
     data,
