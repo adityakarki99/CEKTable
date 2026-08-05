@@ -1,6 +1,6 @@
 import * as RadixCheckbox from '@radix-ui/react-checkbox'
 
-type CheckboxProps = (
+export type CheckboxProps = (
   | { checked: boolean | 'indeterminate'; onCheckedChange: (checked: boolean) => void; defaultChecked?: never }
   | { checked?: never; onCheckedChange?: never; defaultChecked?: boolean }
 ) & {
