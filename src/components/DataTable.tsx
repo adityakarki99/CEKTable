@@ -26,7 +26,7 @@ interface AIColumn {
   values: Record<string, string>
 }
 
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
   data: T[]
   columns: ColumnDef<T, unknown>[]
   enableSorting?: boolean
@@ -39,6 +39,12 @@ interface DataTableProps<T> {
   pageSize?: number
   maxCellHeight?: number
   cardRenderer?: (row: Row<T>, aiColumns: AIColumn[]) => React.ReactNode
+  getRowId?: (row: T, index: number) => string
+}
+
+const defaultGetRowId = <T,>(row: T, index: number): string => {
+  const id = (row as Record<string, unknown>).id
+  return id != null ? String(id) : String(index)
 }
 
 // AI Analysis Functions (simulated)
@@ -206,8 +212,6 @@ function DataCard<T>({
   onToggleSelect: () => void
   enableSelection: boolean
 }) {
-  const data = row.original as Record<string, unknown>
-
   return (
     <div className={`data-card ${isSelected ? 'selected' : ''}`}>
       {enableSelection && (
@@ -243,7 +247,7 @@ function DataCard<T>({
               {aiCol.header}
             </span>
             <span className="card-value">
-              {aiCol.values[data.id as string] || 'Analyzing...'}
+              {aiCol.values[row.id] || 'Analyzing...'}
             </span>
           </div>
         ))}
@@ -264,6 +268,7 @@ export function DataTable<T>({
   enableViewToggle = true,
   pageSize = 10,
   maxCellHeight = 100,
+  getRowId = defaultGetRowId,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -284,13 +289,13 @@ export function DataTable<T>({
     }
 
     // Generate values for each row
-    data.forEach((row) => {
-      const rowData = row as Record<string, unknown>
-      newColumn.values[rowData.id as string] = analyzeWithAI(prompt, rowData)
+    data.forEach((row, index) => {
+      const id = getRowId(row, index)
+      newColumn.values[id] = analyzeWithAI(prompt, row as Record<string, unknown>)
     })
 
     setAIColumns(prev => [...prev, newColumn])
-  }, [data])
+  }, [data, getRowId])
 
   // Remove AI column
   const removeAIColumn = useCallback((columnId: string) => {
@@ -317,14 +322,11 @@ export function DataTable<T>({
           </button>
         </div>
       ),
-      cell: ({ row }: { row: Row<T> }) => {
-        const rowData = row.original as Record<string, unknown>
-        return (
-          <div className="ai-cell">
-            {aiCol.values[rowData.id as string] || 'Analyzing...'}
-          </div>
-        )
-      },
+      cell: ({ row }: { row: Row<T> }) => (
+        <div className="ai-cell">
+          {aiCol.values[row.id] || 'Analyzing...'}
+        </div>
+      ),
       size: 180,
       enableSorting: false,
     }))
@@ -333,6 +335,7 @@ export function DataTable<T>({
   const table = useReactTable({
     data,
     columns: allColumns,
+    getRowId,
     state: {
       sorting,
       columnFilters,
