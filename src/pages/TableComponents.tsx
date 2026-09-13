@@ -103,7 +103,7 @@ function TableComponents() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px' }}>
+                    <th data-column-id="select" style={{ width: '48px' }}>
                       <Checkbox aria-label="Select all rows" />
                     </th>
                     <th className="sortable">
@@ -140,7 +140,7 @@ function TableComponents() {
               <table className="data-table">
                 <tbody>
                   <tr>
-                    <td style={{ width: '40px' }}>
+                    <td data-column-id="select" style={{ width: '48px' }}>
                       <Checkbox aria-label="Select row" />
                     </td>
                     <td>SKU-001</td>
@@ -149,7 +149,7 @@ function TableComponents() {
                     <td><span className="status-badge in-stock">In Stock</span></td>
                   </tr>
                   <tr className="selected">
-                    <td style={{ width: '40px' }}>
+                    <td data-column-id="select" style={{ width: '48px' }}>
                       <Checkbox aria-label="Select row" defaultChecked />
                     </td>
                     <td>SKU-002</td>
@@ -158,7 +158,7 @@ function TableComponents() {
                     <td><span className="status-badge low-stock">Low Stock</span></td>
                   </tr>
                   <tr>
-                    <td style={{ width: '40px' }}>
+                    <td data-column-id="select" style={{ width: '48px' }}>
                       <Checkbox aria-label="Select row" />
                     </td>
                     <td>SKU-003</td>
@@ -242,29 +242,35 @@ function TableComponents() {
 
       <style>{`
         .page {
-          padding: 2rem;
+          padding: 2rem 1.5rem 3rem;
           max-width: 1200px;
           margin: 0 auto;
         }
 
         .page-header {
-          margin-bottom: 2rem;
+          margin-bottom: 1.75rem;
         }
 
         .back-link {
           display: inline-block;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
           font-size: 0.875rem;
+        }
+
+        .page-header h1 {
+          margin-bottom: 0.5rem;
         }
 
         .page-header p {
           margin: 0;
+          max-width: 60ch;
         }
 
         .components-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 1.5rem;
+          align-items: start;
         }
 
         .component-section {
@@ -287,8 +293,8 @@ function TableComponents() {
         }
 
         .section-desc {
-          font-size: 0.8rem;
-          margin: 0 0 1rem;
+          font-size: 0.8125rem;
+          margin: 0 0 1.25rem;
         }
 
         .component-demo {
@@ -323,7 +329,7 @@ function TableComponents() {
           gap: 0.5rem;
           cursor: pointer;
           font-size: 0.875rem;
-          color: #334155;
+          color: #1e293b;
         }
 
         .code-block {
@@ -337,9 +343,9 @@ function TableComponents() {
         .code-block code {
           font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
           font-size: 0.75rem;
-          color: #a78bfa;
+          color: #c4b5fd;
           white-space: pre;
-          line-height: 1.6;
+          line-height: 1.7;
         }
 
         /* Color palette */
@@ -350,11 +356,11 @@ function TableComponents() {
         }
 
         .color-group h3 {
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #64748b;
-          margin-bottom: 0.75rem;
+          letter-spacing: 0.04em;
+          color: #475569;
+          margin: 0 0 0.75rem;
         }
 
         .color-row {
@@ -380,10 +386,10 @@ function TableComponents() {
         }
 
         .color-swatch span {
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           text-align: center;
-          color: #64748b;
-          line-height: 1.4;
+          color: #475569;
+          line-height: 1.5;
         }
 
         /* Dark mode overrides */
@@ -400,6 +406,11 @@ function TableComponents() {
 
           .checkbox-label {
             color: #e2e8f0;
+          }
+
+          .color-group h3,
+          .color-swatch span {
+            color: #a3b1c6;
           }
 
           .code-block {

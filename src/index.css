@@ -22,6 +22,8 @@
   --clay-violet: #8b5cf6;
   --clay-violet-light: #a78bfa;
   --clay-violet-dark: #7c3aed;
+  /* Darkest step, for violet used as text or as a fill behind white text */
+  --clay-violet-text: #6d28d9;
 
   /* Slate grays for text and backgrounds */
   --slate-50: #f8fafc;
@@ -73,13 +75,19 @@ body {
 /* Typography */
 a {
   font-weight: 500;
-  color: var(--clay-violet);
+  color: var(--clay-violet-text);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--clay-violet-dark);
+  color: var(--clay-purple-800);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--clay-violet-text);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 h1 {
@@ -106,6 +114,7 @@ h3 {
 
 p {
   color: var(--slate-600);
+  line-height: 1.6;
 }
 
 /* Buttons - Clay style */
@@ -116,27 +125,36 @@ button {
   font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--clay-violet);
+  background-color: var(--clay-violet-dark);
   color: white;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-button:hover {
-  background-color: var(--clay-violet-dark);
+button:hover:not(:disabled) {
+  background-color: var(--clay-violet-text);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
 }
 
-button:active {
+button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-button:focus,
 button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+  outline: 2px solid var(--clay-violet-text);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+button:disabled {
+  background-color: var(--slate-200);
+  color: var(--slate-600);
+  border-color: var(--slate-200);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Secondary button variant */
@@ -146,7 +164,7 @@ button.secondary {
   border: 1px solid var(--slate-200);
 }
 
-button.secondary:hover {
+button.secondary:hover:not(:disabled) {
   background-color: var(--slate-50);
   border-color: var(--slate-300);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -215,7 +233,7 @@ input::placeholder {
   }
 
   p {
-    color: var(--slate-400);
+    color: #a3b1c6;
   }
 
   a {
@@ -230,8 +248,22 @@ input::placeholder {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
-  button:hover {
+  button:hover:not(:disabled) {
     box-shadow: 0 4px 6px rgba(139, 92, 246, 0.3);
+  }
+
+  button:focus-visible {
+    outline-color: var(--clay-violet-light);
+  }
+
+  button:disabled {
+    background-color: var(--slate-800);
+    color: var(--slate-400);
+    border-color: var(--slate-700);
+  }
+
+  a:focus-visible {
+    outline-color: var(--clay-violet-light);
   }
 
   button.secondary {
@@ -240,7 +272,7 @@ input::placeholder {
     border-color: var(--slate-700);
   }
 
-  button.secondary:hover {
+  button.secondary:hover:not(:disabled) {
     background-color: var(--slate-700);
     border-color: var(--slate-600);
   }

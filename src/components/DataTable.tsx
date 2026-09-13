@@ -433,6 +433,7 @@ export function DataTable<T>({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
+                      data-column-id={header.column.id}
                       className={header.column.getCanSort() ? 'sortable' : ''}
                       style={{
                         width: header.getSize(),
@@ -471,6 +472,7 @@ export function DataTable<T>({
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
+                      data-column-id={cell.column.id}
                       style={{
                         width: cell.column.getSize(),
                         maxHeight: maxCellHeight,

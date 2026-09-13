@@ -25,7 +25,7 @@ function TableDemo() {
             aria-label="Select row"
           />
         ),
-        size: 40,
+        size: 48,
         enableSorting: false,
       },
       {
@@ -55,7 +55,7 @@ function TableDemo() {
       {
         accessorKey: 'reorderPoint',
         header: 'Reorder At',
-        size: 100,
+        size: 120,
       },
       {
         accessorKey: 'price',
@@ -76,12 +76,14 @@ function TableDemo() {
       {
         accessorKey: 'status',
         header: 'Status',
-        size: 120,
+        size: 140,
         cell: ({ getValue }) => {
           const status = getValue() as string
+          // replaceAll: 'Out of Stock' has two spaces, and replace() would
+          // only swap the first, yielding an unstyled badge.
           const className = status
             .toLowerCase()
-            .replace(' ', '-')
+            .replaceAll(' ', '-')
           return <span className={`status-badge ${className}`}>{status}</span>
         },
       },
@@ -121,24 +123,28 @@ function TableDemo() {
 
       <style>{`
         .page {
-          padding: 2rem;
+          padding: 2rem 1.5rem 3rem;
           max-width: 1400px;
           margin: 0 auto;
         }
 
         .page-header {
-          margin-bottom: 2rem;
+          margin-bottom: 1.75rem;
         }
 
         .back-link {
           display: inline-block;
-          margin-bottom: 1rem;
-          font-size: 0.9em;
+          margin-bottom: 0.75rem;
+          font-size: 0.875rem;
+        }
+
+        .page-header h1 {
+          margin-bottom: 0.5rem;
         }
 
         .page-header p {
-          color: #888;
           margin: 0;
+          max-width: 60ch;
         }
 
         .demo-container {
@@ -146,29 +152,53 @@ function TableDemo() {
         }
 
         .demo-info {
-          background: rgba(100, 108, 255, 0.1);
-          border-radius: 8px;
+          background: rgba(124, 58, 237, 0.06);
+          border-radius: 12px;
           padding: 1.5rem;
-          border: 1px solid rgba(100, 108, 255, 0.2);
+          border: 1px solid rgba(124, 58, 237, 0.18);
         }
 
         .demo-info h3 {
-          margin-top: 0;
-          color: #646cff;
+          margin: 0 0 0.75rem;
+          font-size: 0.95rem;
+          color: #6d28d9;
         }
 
         .demo-info ul {
           margin: 0;
-          padding-left: 1.5rem;
+          padding-left: 1.25rem;
+          color: #475569;
         }
 
         .demo-info li {
           margin-bottom: 0.5rem;
+          line-height: 1.6;
         }
 
-        @media (prefers-color-scheme: light) {
+        .demo-info li:last-child {
+          margin-bottom: 0;
+        }
+
+        .demo-info strong {
+          color: #1e293b;
+        }
+
+        @media (prefers-color-scheme: dark) {
           .demo-info {
-            background: rgba(100, 108, 255, 0.05);
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.25);
+          }
+
+          .demo-info h3 {
+            color: #c4b5fd;
+          }
+
+          .demo-info ul {
+            color: #a3b1c6;
+          }
+
+          .demo-info strong {
+            color: #e2e8f0;
           }
         }
       `}</style>
