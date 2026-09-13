@@ -113,7 +113,7 @@ function Home() {
           border-radius: 100px;
           font-size: 0.875rem;
           font-weight: 600;
-          color: #8b5cf6;
+          color: #6d28d9;
           margin-bottom: 1.5rem;
         }
 
@@ -135,10 +135,8 @@ function Home() {
         .subtitle {
           font-size: 1.125rem;
           line-height: 1.7;
-          margin-bottom: 3rem;
-          max-width: 500px;
-          margin-left: auto;
-          margin-right: auto;
+          margin: 0 auto 3rem;
+          max-width: 620px;
         }
 
         .nav-cards {
@@ -187,24 +185,24 @@ function Home() {
 
         .nav-card h2 {
           font-size: 1.25rem;
-          margin-bottom: 0.5rem;
+          margin: 0 0 0.5rem;
         }
 
         .nav-card p {
           font-size: 0.9rem;
           line-height: 1.6;
-          margin-bottom: 1rem;
+          margin: 0 0 1.25rem;
           flex-grow: 1;
         }
 
         .card-link {
           font-size: 0.875rem;
           font-weight: 600;
-          color: #8b5cf6;
+          color: #6d28d9;
         }
 
         .nav-card:hover .card-link {
-          color: #7c3aed;
+          color: #5b21b6;
         }
 
         .features {
@@ -227,10 +225,16 @@ function Home() {
           color: #475569;
         }
 
+        .card-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
         .feature-icon {
           display: flex;
           align-items: center;
-          color: #8b5cf6;
+          color: #7c3aed;
         }
 
         /* Dark mode */
