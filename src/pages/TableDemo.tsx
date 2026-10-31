@@ -108,6 +108,8 @@ function TableDemo() {
           enablePagination={true}
           enableRowSelection={true}
           pageSize={5}
+          getRowId={(row) => row.sku}
+          excludeFromEncoding={['id', 'lastUpdated']}
         />
       </div>
 
