@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useSyncExternalStore } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -16,15 +16,24 @@ import type {
   Row,
 } from '@tanstack/react-table'
 import { Checkbox } from './Checkbox'
+import { createTable } from '../core'
+import type { EngineState, EngineTable, Encoder } from '../core'
 import './table.css'
 
-// AI Column Types
-interface AIColumn {
+// AI column definitions. Values come from the headless engine, never from a prompt.
+export type AIColumnKind = 'category' | 'outlier' | 'similarity'
+
+export interface AIColumn {
   id: string
   header: string
-  prompt: string
-  values: Record<string, string>
+  kind: AIColumnKind
+  /** Number of groups for `category`. */
+  k?: number
+  /** Anchor row id for `similarity`. */
+  anchor?: string
 }
+
+const CATEGORY_COLORS = ['#7c3aed', '#0891b2', '#d97706', '#db2777', '#059669', '#4f46e5']
 
 export interface DataTableProps<T> {
   data: T[]
@@ -40,6 +49,12 @@ export interface DataTableProps<T> {
   maxCellHeight?: number
   cardRenderer?: (row: Row<T>, aiColumns: AIColumn[]) => React.ReactNode
   getRowId?: (row: T, index: number) => string
+  /** Encoder for the engine. Defaults to the weight-free hashing encoder. */
+  encoder?: Encoder
+  /** Columns the engine should not encode (ids, timestamps). */
+  excludeFromEncoding?: string[]
+  /** Called once the headless engine exists, for callers that want to drive it directly. */
+  onEngine?: (engine: EngineTable<T>) => void
 }
 
 const defaultGetRowId = <T,>(row: T, index: number): string => {
@@ -47,82 +62,29 @@ const defaultGetRowId = <T,>(row: T, index: number): string => {
   return id != null ? String(id) : String(index)
 }
 
-// AI Analysis Functions (simulated)
-const analyzeWithAI = (prompt: string, rowData: Record<string, unknown>): string => {
-  const promptLower = prompt.toLowerCase()
-
-  // Priority/Urgency analysis
-  if (promptLower.includes('priority') || promptLower.includes('urgent')) {
-    const qty = rowData.quantity as number
-    const reorder = rowData.reorderPoint as number
-    const status = rowData.status as string
-    if (status === 'Out of Stock') return 'Critical - Reorder Now'
-    if (qty <= reorder) return 'High - Below Reorder Point'
-    if (qty <= reorder * 1.5) return 'Medium - Monitor Closely'
-    return 'Low - Adequate Stock'
-  }
-
-  // Restock recommendation
-  if (promptLower.includes('restock') || promptLower.includes('order')) {
-    const qty = rowData.quantity as number
-    const reorder = rowData.reorderPoint as number
-    if (qty === 0) return `Order ${reorder * 2} units immediately`
-    if (qty < reorder) return `Order ${reorder - qty + 20} units soon`
-    return 'No restock needed'
-  }
-
-  // Risk assessment
-  if (promptLower.includes('risk')) {
-    const qty = rowData.quantity as number
-    const price = rowData.price as number
-    const status = rowData.status as string
-    if (status === 'Out of Stock') return 'High Risk - Lost Sales'
-    if (qty < 20 && price > 100) return 'Medium Risk - High Value Item'
-    if (qty < 10) return 'Medium Risk - Low Inventory'
-    return 'Low Risk'
-  }
-
-  // Value/Revenue analysis
-  if (promptLower.includes('value') || promptLower.includes('revenue')) {
-    const qty = rowData.quantity as number
-    const price = rowData.price as number
-    const value = qty * price
-    if (value > 10000) return `High Value ($${value.toLocaleString()})`
-    if (value > 1000) return `Medium Value ($${value.toLocaleString()})`
-    return `Low Value ($${value.toLocaleString()})`
-  }
-
-  // Category insights
-  if (promptLower.includes('insight') || promptLower.includes('summary')) {
-    const category = rowData.category as string
-    const status = rowData.status as string
-    return `${category} item - ${status}`
-  }
-
-  // Default analysis
-  return 'Analysis pending...'
-}
-
 // AI Column Modal Component
 function AIColumnModal({
   isOpen,
   onClose,
-  onSubmit
+  onSubmit,
+  rowIds,
 }: {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (name: string, prompt: string) => void
+  onSubmit: (col: Omit<AIColumn, 'id'>) => void
+  rowIds: string[]
 }) {
   const [columnName, setColumnName] = useState('')
-  const [prompt, setPrompt] = useState('')
+  const [kind, setKind] = useState<AIColumnKind>('category')
+  const [k, setK] = useState(4)
+  const [anchor, setAnchor] = useState('')
+
+  const defaultName = kind === 'category' ? 'Category' : kind === 'outlier' ? 'Unusual' : `Similar to ${anchor || rowIds[0] || ''}`
 
   const handleSubmit = () => {
-    if (columnName.trim() && prompt.trim()) {
-      onSubmit(columnName, prompt)
-      setColumnName('')
-      setPrompt('')
-      onClose()
-    }
+    onSubmit({ header: columnName.trim() || defaultName, kind, k, anchor: anchor || rowIds[0] })
+    setColumnName('')
+    onClose()
   }
 
   if (!isOpen) return null
@@ -136,61 +98,46 @@ function AIColumnModal({
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label>Column Name</label>
+            <label htmlFor="ai-kind">Kind</label>
+            <select id="ai-kind" className="form-input" value={kind} onChange={e => setKind(e.target.value as AIColumnKind)}>
+              <option value="category">Categories — discover groups in the rows</option>
+              <option value="outlier">Outlier score — how unusual each row is</option>
+              <option value="similarity">Similarity — distance to one row</option>
+            </select>
+          </div>
+          {kind === 'category' && (
+            <div className="form-group">
+              <label htmlFor="ai-k">Number of groups</label>
+              <select id="ai-k" className="form-input" value={k} onChange={e => setK(Number(e.target.value))}>
+                {[2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          )}
+          {kind === 'similarity' && (
+            <div className="form-group">
+              <label htmlFor="ai-anchor">Anchor row</label>
+              <select id="ai-anchor" className="form-input" value={anchor || rowIds[0] || ''} onChange={e => setAnchor(e.target.value)}>
+                {rowIds.map(id => <option key={id} value={id}>{id}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="form-group">
+            <label htmlFor="ai-name">Column Name</label>
             <input
+              id="ai-name"
               type="text"
               value={columnName}
               onChange={e => setColumnName(e.target.value)}
-              placeholder="e.g., Priority Level"
+              placeholder={defaultName}
               className="form-input"
             />
           </div>
-          <div className="form-group">
-            <label>AI Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder="e.g., Analyze the inventory status and determine priority level for reordering"
-              className="form-textarea"
-              rows={3}
-            />
-          </div>
-          <div className="prompt-suggestions">
-            <span className="suggestion-label">Try:</span>
-            <button
-              type="button"
-              className="suggestion-chip"
-              onClick={() => setPrompt('Determine the priority level for restocking this item')}
-            >
-              Priority Level
-            </button>
-            <button
-              type="button"
-              className="suggestion-chip"
-              onClick={() => setPrompt('Calculate risk assessment for this inventory item')}
-            >
-              Risk Assessment
-            </button>
-            <button
-              type="button"
-              className="suggestion-chip"
-              onClick={() => setPrompt('Provide restock recommendation based on current quantity')}
-            >
-              Restock Advice
-            </button>
-            <button
-              type="button"
-              className="suggestion-chip"
-              onClick={() => setPrompt('Calculate total inventory value and categorize')}
-            >
-              Value Analysis
-            </button>
-          </div>
+          <p className="ai-help">Computed locally from row embeddings. No prompt, no model call.</p>
         </div>
         <div className="modal-footer">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={handleSubmit}>
-            <span className="ai-icon">✨</span> Generate Column
+            <span className="ai-icon">✨</span> Add Column
           </button>
         </div>
       </div>
@@ -198,16 +145,64 @@ function AIColumnModal({
   )
 }
 
+// Category cell with an inline correction menu
+function CategoryCell({ engine, rowId }: { engine: EngineTable<unknown>; rowId: string }) {
+  const [open, setOpen] = useState(false)
+  const cell = engine.state.categories[rowId]
+  const space = engine.state.space
+  if (!cell || !space) return <span className="ai-cell">…</span>
+  const idx = space.categories.findIndex(c => c.value === cell.value)
+  return (
+    <span className="ai-category-wrap">
+      <button
+        type="button"
+        className={`ai-chip ${cell.flagged ? 'flagged' : ''}`}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        title="Click to correct"
+      >
+        <i style={{ background: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }} />
+        {cell.label}
+        <small>{Math.round(cell.confidence * 100)}%{cell.flagged ? ' review' : ''}</small>
+      </button>
+      {open && (
+        <span className="ai-menu" onClick={e => e.stopPropagation()}>
+          {space.categories.map((c, i) => (
+            <button type="button" key={c.value} onClick={() => { engine.correct(rowId, c.value); setOpen(false) }}>
+              <i style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />{c.label}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function aiCellValue(engine: EngineTable<unknown>, col: AIColumn, rowId: string): string {
+  if (col.kind === 'outlier') return String(engine.state.outliers[rowId] ?? '…')
+  if (col.kind === 'similarity') {
+    if (rowId === col.anchor) return 'this row'
+    const a = engine.vector(col.anchor ?? '')
+    const b = engine.vector(rowId)
+    if (!a || !b) return '…'
+    let s = 0
+    for (let i = 0; i < a.length; i++) s += a[i] * b[i]
+    return s.toFixed(2)
+  }
+  return engine.state.categories[rowId]?.label ?? '…'
+}
+
 // Card View Component
 function DataCard<T>({
   row,
   aiColumns,
+  engine,
   isSelected,
   onToggleSelect,
   enableSelection
 }: {
   row: Row<T>
   aiColumns: AIColumn[]
+  engine: EngineTable<unknown>
   isSelected: boolean
   onToggleSelect: () => void
   enableSelection: boolean
@@ -247,7 +242,7 @@ function DataCard<T>({
               {aiCol.header}
             </span>
             <span className="card-value">
-              {aiCol.values[row.id] || 'Analyzing...'}
+              {aiCol.kind === 'category' ? <CategoryCell engine={engine} rowId={row.id} /> : aiCellValue(engine, aiCol, row.id)}
             </span>
           </div>
         ))}
@@ -269,6 +264,9 @@ export function DataTable<T>({
   pageSize = 10,
   maxCellHeight = 100,
   getRowId = defaultGetRowId,
+  encoder,
+  excludeFromEncoding,
+  onEngine,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -279,23 +277,27 @@ export function DataTable<T>({
   const [aiColumns, setAIColumns] = useState<AIColumn[]>([])
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
 
-  // Generate AI column values
-  const generateAIColumn = useCallback((name: string, prompt: string) => {
-    const newColumn: AIColumn = {
-      id: `ai-${Date.now()}`,
-      header: name,
-      prompt: prompt,
-      values: {}
-    }
+  // Headless engine: one instance per table, re-encoded when data changes.
+  const engine = useMemo(
+    () => createTable<T & object>({ data: data as (T & object)[], getRowId: getRowId as (row: T & object, i: number) => string, encoder, exclude: excludeFromEncoding }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [encoder, getRowId, excludeFromEncoding]
+  )
+  useEffect(() => { if (engine.rows !== data) engine.setData(data as (T & object)[]) }, [engine, data])
+  useEffect(() => { onEngine?.(engine as unknown as EngineTable<T>) }, [engine, onEngine])
+  const engineState: EngineState = useSyncExternalStore(
+    useCallback((cb: () => void) => engine.subscribe(cb), [engine]),
+    () => engine.state,
+    () => engine.state
+  )
+  const untypedEngine = engine as unknown as EngineTable<unknown>
 
-    // Generate values for each row
-    data.forEach((row, index) => {
-      const id = getRowId(row, index)
-      newColumn.values[id] = analyzeWithAI(prompt, row as Record<string, unknown>)
-    })
-
-    setAIColumns(prev => [...prev, newColumn])
-  }, [data, getRowId])
+  // Add an engine-backed column
+  const generateAIColumn = useCallback((col: Omit<AIColumn, 'id'>) => {
+    if (col.kind === 'category' && !engine.state.space) engine.discoverCategories(col.k ?? 4)
+    if (col.kind === 'outlier') engine.scoreOutliers()
+    setAIColumns(prev => [...prev, { ...col, id: `ai-${Date.now()}` }])
+  }, [engine])
 
   // Remove AI column
   const removeAIColumn = useCallback((columnId: string) => {
@@ -322,15 +324,16 @@ export function DataTable<T>({
           </button>
         </div>
       ),
-      cell: ({ row }: { row: Row<T> }) => (
-        <div className="ai-cell">
-          {aiCol.values[row.id] || 'Analyzing...'}
-        </div>
-      ),
+      cell: ({ row }: { row: Row<T> }) =>
+        aiCol.kind === 'category'
+          ? <CategoryCell engine={untypedEngine} rowId={row.id} />
+          : <div className="ai-cell">{aiCellValue(untypedEngine, aiCol, row.id)}</div>,
       size: 180,
       enableSorting: false,
     }))
-  ], [initialColumns, aiColumns, removeAIColumn])
+    // engineState.version forces fresh cell renderers after any engine change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [initialColumns, aiColumns, removeAIColumn, untypedEngine, engineState.version])
 
   const table = useReactTable({
     data,
@@ -501,6 +504,7 @@ export function DataTable<T>({
               key={row.id}
               row={row}
               aiColumns={aiColumns}
+              engine={untypedEngine}
               isSelected={row.getIsSelected()}
               onToggleSelect={() => row.toggleSelected()}
               enableSelection={enableRowSelection}
@@ -561,6 +565,7 @@ export function DataTable<T>({
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
         onSubmit={generateAIColumn}
+        rowIds={engineState.rowIds}
       />
     </div>
   )
