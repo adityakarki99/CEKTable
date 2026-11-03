@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
 import {
   useReactTable,
   getCoreRowModel,
@@ -47,6 +48,8 @@ export interface DataTableProps<T> {
   enableViewToggle?: boolean
   pageSize?: number
   maxCellHeight?: number
+  /** Row padding preset. Also settable from CSS via `--cek-density` on any ancestor. */
+  density?: 'compact' | 'comfortable' | 'spacious'
   cardRenderer?: (row: Row<T>, aiColumns: AIColumn[]) => React.ReactNode
   getRowId?: (row: T, index: number) => string
   /** Encoder for the engine. Defaults to the weight-free hashing encoder. */
@@ -263,6 +266,7 @@ export function DataTable<T>({
   enableViewToggle = true,
   pageSize = 10,
   maxCellHeight = 100,
+  density = 'comfortable',
   getRowId = defaultGetRowId,
   encoder,
   excludeFromEncoding,
@@ -274,6 +278,12 @@ export function DataTable<T>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  // Morph between table and cards with the View Transitions API where available
+  const switchView = useCallback((mode: 'table' | 'card') => {
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => void }
+    if (typeof doc.startViewTransition === 'function') doc.startViewTransition(() => flushSync(() => setViewMode(mode)))
+    else setViewMode(mode)
+  }, [])
   const [aiColumns, setAIColumns] = useState<AIColumn[]>([])
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
 
@@ -368,7 +378,7 @@ export function DataTable<T>({
   const selectedCount = Object.keys(rowSelection).length
 
   return (
-    <div className="data-table-container">
+    <div className="data-table-container" data-density={density}>
       {/* Toolbar */}
       <div className="table-toolbar">
         <div className="toolbar-left">
@@ -401,7 +411,7 @@ export function DataTable<T>({
             <div className="view-toggle">
               <button
                 className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                onClick={() => setViewMode('table')}
+                onClick={() => switchView('table')}
                 title="Table View"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -411,7 +421,7 @@ export function DataTable<T>({
               </button>
               <button
                 className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
-                onClick={() => setViewMode('card')}
+                onClick={() => switchView('card')}
                 title="Card View"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

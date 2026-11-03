@@ -1,6 +1,8 @@
 /* ============================================
-   Clay.com Inspired Table Styles
-   Modern spreadsheet-like design with purple accents
+   CEKTable Styles
+   Soft, line-free surfaces with purple accents.
+   Shape, density and motion are tokens so the host can morph the
+   table (set --cek-density, --cek-radius or --cek-motion on any ancestor).
 
    All colors and spacing flow from the tokens below so that light and
    dark themes stay in sync and meet WCAG AA contrast.
@@ -59,8 +61,16 @@
 
   /* Shared control height so every toolbar item lines up */
   --cek-control-height: 36px;
-  --cek-radius: 8px;
-  --cek-radius-lg: 12px;
+
+  /* Shape */
+  --cek-radius: 10px;
+  --cek-radius-lg: 16px;
+  --cek-radius-pill: 999px;
+
+  /* Morph controls: scale cell padding, and the shared motion curve */
+  --cek-density: 1;
+  --cek-motion: 180ms;
+  --cek-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -128,20 +138,19 @@
   box-sizing: border-box;
   height: var(--cek-control-height);
   min-width: 260px;
-  padding: 0 var(--cek-space-3);
+  padding: 0 var(--cek-space-4);
   font-size: 14px;
   font-family: inherit;
-  border: 1px solid var(--cek-border);
-  border-radius: var(--cek-radius);
-  background-color: var(--cek-surface);
+  border: none;
+  border-radius: var(--cek-radius-pill);
+  background-color: var(--cek-surface-muted);
   color: var(--cek-text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: var(--cek-shadow-sm);
+  transition: background-color var(--cek-motion) var(--cek-ease), box-shadow var(--cek-motion) var(--cek-ease);
 }
 
 .global-filter:focus {
   outline: none;
-  border-color: var(--cek-accent);
+  background-color: var(--cek-surface);
   box-shadow: 0 0 0 3px var(--cek-accent-ring);
 }
 
@@ -158,7 +167,7 @@
   font-weight: 500;
   background: var(--cek-accent-soft);
   padding: 0 var(--cek-space-3);
-  border-radius: var(--cek-radius);
+  border-radius: var(--cek-radius-pill);
 }
 
 /* ============================================
@@ -174,7 +183,7 @@
   align-items: center;
   height: var(--cek-control-height);
   background: var(--cek-surface-muted);
-  border-radius: var(--cek-radius);
+  border-radius: var(--cek-radius-pill);
   padding: 3px;
   gap: 2px;
 }
@@ -187,12 +196,12 @@
   height: 30px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--cek-radius-pill);
   background: transparent;
   color: var(--cek-text-muted);
   cursor: pointer;
   box-shadow: none;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color var(--cek-motion) var(--cek-ease), background-color var(--cek-motion) var(--cek-ease);
 }
 
 .view-btn:hover:not(:disabled) {
@@ -227,13 +236,13 @@
   background: var(--cek-accent-gradient);
   color: #ffffff;
   border: none;
-  border-radius: var(--cek-radius);
+  border-radius: var(--cek-radius-pill);
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+  transition: transform var(--cek-motion) var(--cek-ease), box-shadow var(--cek-motion) var(--cek-ease);
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.18);
 }
 
 .btn-ai:hover:not(:disabled) {
@@ -261,9 +270,11 @@
 .table-wrapper {
   overflow-x: auto;
   border-radius: var(--cek-radius-lg);
-  border: 1px solid var(--cek-border);
   background-color: var(--cek-surface);
   box-shadow: var(--cek-shadow-md);
+  scrollbar-color: var(--cek-border-strong) transparent;
+  scrollbar-width: thin;
+  view-transition-name: cek-view;
 }
 
 /* Main Table */
@@ -278,19 +289,12 @@
   table-layout: fixed;
 }
 
-/* Cell Styles - Spreadsheet grid */
+/* Cell Styles - no rules; rows read by spacing and hover, not lines */
 .data-table th,
 .data-table td {
-  padding: var(--cek-space-3) var(--cek-space-4);
+  padding: calc(var(--cek-space-3) * var(--cek-density)) var(--cek-space-4);
   text-align: left;
-  border-bottom: 1px solid var(--cek-grid);
-  border-right: 1px solid var(--cek-grid);
   overflow: hidden;
-}
-
-.data-table th:last-child,
-.data-table td:last-child {
-  border-right: none;
 }
 
 /* The selection column is narrow; full cell padding would clip the box. */
@@ -302,28 +306,24 @@
 
 /* Header Styles */
 .data-table th {
-  background-color: var(--cek-surface-header);
-  font-weight: 600;
+  background-color: var(--cek-surface);
+  font-weight: 500;
   font-size: 12px;
-  color: var(--cek-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--cek-text-faint);
+  letter-spacing: 0.01em;
   white-space: nowrap;
   user-select: none;
   position: sticky;
   top: 0;
   z-index: 10;
-  /* border-collapse drops borders on sticky cells, so draw it inside */
-  box-shadow: inset 0 -1px 0 var(--cek-border);
+  transition: color var(--cek-motion) var(--cek-ease);
 }
 
 .data-table th.sortable {
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .data-table th.sortable:hover {
-  background-color: var(--cek-surface-header-hover);
   color: var(--cek-text);
 }
 
@@ -343,25 +343,29 @@
   flex-shrink: 0;
 }
 
-/* Row Styles */
-.data-table tbody tr {
-  transition: background-color 0.1s ease;
+/* Row Styles - the row itself morphs into a soft pill on hover/select */
+.data-table tbody td {
+  transition: background-color var(--cek-motion) var(--cek-ease);
 }
 
-.data-table tbody tr:hover {
+.data-table tbody td:first-child {
+  border-radius: var(--cek-radius) 0 0 var(--cek-radius);
+}
+
+.data-table tbody td:last-child {
+  border-radius: 0 var(--cek-radius) var(--cek-radius) 0;
+}
+
+.data-table tbody tr:hover td {
   background-color: var(--cek-surface-subtle);
 }
 
-.data-table tbody tr.selected {
+.data-table tbody tr.selected td {
   background-color: var(--cek-accent-soft);
 }
 
-.data-table tbody tr.selected:hover {
+.data-table tbody tr.selected:hover td {
   background-color: var(--cek-accent-soft-hover);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 /* Cell content with auto height and max height */
@@ -406,13 +410,13 @@
   content: '';
   position: absolute;
   right: 2px;
-  top: 25%;
-  height: 50%;
-  width: 2px;
+  top: 30%;
+  height: 40%;
+  width: 3px;
   background: var(--cek-border-strong);
-  border-radius: 1px;
+  border-radius: 2px;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--cek-motion) var(--cek-ease);
 }
 
 .resize-handle:hover::after,
@@ -540,8 +544,23 @@
   color: var(--cek-text-muted);
   background: var(--cek-accent-soft);
   padding: var(--cek-space-1) var(--cek-space-2);
-  border-radius: 6px;
-  border: 1px solid var(--cek-accent-soft-hover);
+  border-radius: var(--cek-radius);
+  animation: cekFadeIn var(--cek-motion) var(--cek-ease) both;
+}
+
+.ai-column-header {
+  animation: cekFadeIn var(--cek-motion) var(--cek-ease) both;
+}
+
+@keyframes cekFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================================
@@ -552,35 +571,33 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--cek-space-4);
   align-items: start;
+  view-transition-name: cek-view;
 }
 
 .data-card {
   background: var(--cek-surface);
-  border: 1px solid var(--cek-border);
   border-radius: var(--cek-radius-lg);
-  padding: var(--cek-space-5);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: calc(var(--cek-space-5) * var(--cek-density));
+  transition: transform var(--cek-motion) var(--cek-ease), box-shadow var(--cek-motion) var(--cek-ease), background-color var(--cek-motion) var(--cek-ease);
   box-shadow: var(--cek-shadow-md);
 }
 
 .data-card:hover {
-  border-color: var(--cek-accent);
+  transform: translateY(-2px);
   box-shadow:
-    0 4px 6px rgba(124, 58, 237, 0.08),
-    0 8px 16px rgba(124, 58, 237, 0.06);
+    0 6px 10px rgba(124, 58, 237, 0.08),
+    0 14px 28px rgba(124, 58, 237, 0.08);
 }
 
 .data-card.selected {
-  border-color: var(--cek-accent);
   background: var(--cek-accent-soft);
+  box-shadow: 0 0 0 2px var(--cek-accent-ring);
 }
 
 .card-select {
   display: flex;
   align-items: center;
-  padding-bottom: var(--cek-space-3);
-  margin-bottom: var(--cek-space-4);
-  border-bottom: 1px solid var(--cek-grid);
+  margin-bottom: var(--cek-space-3);
 }
 
 .card-content {
@@ -609,8 +626,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--cek-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 
 .card-value {
@@ -636,11 +652,11 @@
 
 .modal-content {
   background: var(--cek-surface);
-  border-radius: var(--cek-radius-lg);
+  border-radius: calc(var(--cek-radius-lg) + 4px);
   width: 100%;
   max-width: 480px;
   box-shadow: var(--cek-shadow-lg);
-  animation: modalSlideIn 0.2s ease;
+  animation: modalSlideIn calc(var(--cek-motion) + 60ms) var(--cek-ease);
 }
 
 @keyframes modalSlideIn {
@@ -659,8 +675,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--cek-space-4);
-  padding: var(--cek-space-5) var(--cek-space-6);
-  border-bottom: 1px solid var(--cek-border);
+  padding: var(--cek-space-6) var(--cek-space-6) 0;
 }
 
 .modal-header h3 {
@@ -679,7 +694,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--cek-radius-pill);
   color: var(--cek-text-muted);
   font-size: 22px;
   line-height: 1;
@@ -725,13 +740,13 @@
 .form-textarea {
   box-sizing: border-box;
   width: 100%;
-  padding: 10px var(--cek-space-3);
+  padding: 10px var(--cek-space-4);
   font-size: 14px;
-  border: 1px solid var(--cek-border);
+  border: none;
   border-radius: var(--cek-radius);
-  background: var(--cek-surface);
+  background: var(--cek-surface-muted);
   color: var(--cek-text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color var(--cek-motion) var(--cek-ease), box-shadow var(--cek-motion) var(--cek-ease);
   font-family: inherit;
 }
 
@@ -743,7 +758,7 @@
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--cek-accent);
+  background: var(--cek-surface);
   box-shadow: 0 0 0 3px var(--cek-accent-ring);
 }
 
@@ -797,10 +812,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--cek-space-3);
-  padding: var(--cek-space-4) var(--cek-space-6);
-  border-top: 1px solid var(--cek-border);
-  background: var(--cek-surface-subtle);
-  border-radius: 0 0 var(--cek-radius-lg) var(--cek-radius-lg);
+  padding: 0 var(--cek-space-6) var(--cek-space-6);
 }
 
 .btn-primary,
@@ -812,7 +824,7 @@
   gap: 6px;
   height: 40px;
   padding: 0 18px;
-  border-radius: var(--cek-radius);
+  border-radius: var(--cek-radius-pill);
   font-size: 14px;
   font-weight: 500;
   font-family: inherit;
@@ -833,14 +845,13 @@
 }
 
 .btn-secondary {
-  background: var(--cek-surface);
+  background: var(--cek-surface-muted);
   color: var(--cek-text-muted);
-  border: 1px solid var(--cek-border);
+  border: none;
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--cek-surface-subtle);
-  border-color: var(--cek-border-strong);
   color: var(--cek-text);
   transform: none;
   box-shadow: none;
@@ -884,13 +895,13 @@
   font-weight: 500;
   font-family: inherit;
   min-width: var(--cek-control-height);
-  background-color: var(--cek-surface);
+  background-color: transparent;
   color: var(--cek-text-muted);
-  border: 1px solid var(--cek-border);
-  border-radius: 6px;
+  border: none;
+  border-radius: var(--cek-radius-pill);
   cursor: pointer;
   box-shadow: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color var(--cek-motion) var(--cek-ease), color var(--cek-motion) var(--cek-ease);
 }
 
 /* The shared button styles lift on hover; grid-like controls should not. */
@@ -900,15 +911,13 @@
 }
 
 .pagination-controls button:hover:not(:disabled) {
-  background-color: var(--cek-surface-subtle);
-  border-color: var(--cek-border-strong);
+  background-color: var(--cek-surface-muted);
   color: var(--cek-text);
 }
 
 .pagination-controls button:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
-  background-color: var(--cek-surface-subtle);
 }
 
 .pagination-controls button:focus-visible {
@@ -938,7 +947,7 @@
   max-height: 16px;
   flex-shrink: 0;
   border: 1.5px solid var(--cek-border-strong);
-  border-radius: 4px;
+  border-radius: 5px;
   background-color: var(--cek-surface);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -1032,6 +1041,8 @@
   cursor: pointer;
   box-shadow: none;
   line-height: 1.5;
+  animation: cekFadeIn var(--cek-motion) var(--cek-ease) both;
+  transition: background-color var(--cek-motion) var(--cek-ease), border-color var(--cek-motion) var(--cek-ease);
 }
 
 .ai-chip:hover:not(:disabled) {
@@ -1073,8 +1084,10 @@
   padding: 4px;
   background: var(--cek-surface);
   border: 1px solid var(--cek-border-strong);
-  border-radius: 8px;
+  border: none;
+  border-radius: var(--cek-radius);
   box-shadow: var(--cek-shadow-lg);
+  animation: cekFadeIn var(--cek-motion) var(--cek-ease) both;
 }
 
 .ai-menu button {
@@ -1104,4 +1117,29 @@
   margin: 0;
   font-size: 12px;
   color: var(--cek-text-faint);
+}
+
+/* ============================================
+   Morphing between views and density presets
+   ============================================ */
+::view-transition-old(cek-view),
+::view-transition-new(cek-view) {
+  animation-duration: calc(var(--cek-motion) + 60ms);
+  animation-timing-function: var(--cek-ease);
+}
+
+.data-table-container[data-density='compact'] {
+  --cek-density: 0.6;
+}
+
+.data-table-container[data-density='spacious'] {
+  --cek-density: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-table-container *,
+  .modal-overlay * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
