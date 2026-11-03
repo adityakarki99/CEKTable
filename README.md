@@ -52,7 +52,7 @@ table.recommendCharts({ max: 3 })        // [{ title, spec }] — Vega-Lite v5 w
 JSON.stringify(spaceToJSON(table.state.space))   // category JSON, versioned with your project
 ```
 
-`DataTable` uses the same engine for its AI columns (category, outlier score, similarity). Pass `encoder` to swap the hashing encoder for a learned one, `excludeFromEncoding` to keep ids and timestamps out of the vectors, and `onEngine` to get the engine instance for your own calls. Category chips can be clicked to correct them.
+`DataTable` uses the same engine for its AI columns (category, outlier score, similarity) and for two views built on it: a **grouped view** that folds rows into one tinted band per discovered category (with a count and the mean of the sorted numeric column), and a **row detail panel** that opens on click with the row's fields, why it got its category, its five nearest rows, and one chart. AI column setup lives in the same right-hand panel with a live preview of the groups. Pass `encoder` to swap the hashing encoder for a learned one, `excludeFromEncoding` to keep ids and timestamps out of the vectors, `enableRowDetail={false}` to keep rows inert, `density` to pick `compact | comfortable | spacious`, and `onEngine` to get the engine instance for your own calls. Category chips can be clicked to correct them.
 
 ## Local development
 
