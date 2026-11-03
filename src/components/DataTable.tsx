@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useSyncExternalStore } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { flushSync } from 'react-dom'
 import {
   useReactTable,
@@ -17,24 +18,16 @@ import type {
   Row,
 } from '@tanstack/react-table'
 import { Checkbox } from './Checkbox'
+import { CategoryCell } from './CategoryCell'
+import { AddColumnPanel, RowDetailPanel } from './SidePanel'
+import type { PanelState } from './SidePanel'
 import { createTable } from '../core'
 import type { EngineState, EngineTable, Encoder } from '../core'
+import { CATEGORY_COLORS } from './types'
+import type { AIColumn, ViewMode } from './types'
 import './table.css'
 
-// AI column definitions. Values come from the headless engine, never from a prompt.
-export type AIColumnKind = 'category' | 'outlier' | 'similarity'
-
-export interface AIColumn {
-  id: string
-  header: string
-  kind: AIColumnKind
-  /** Number of groups for `category`. */
-  k?: number
-  /** Anchor row id for `similarity`. */
-  anchor?: string
-}
-
-const CATEGORY_COLORS = ['#7c3aed', '#0891b2', '#d97706', '#db2777', '#059669', '#4f46e5']
+export type { AIColumn, AIColumnKind, ViewMode } from './types'
 
 export interface DataTableProps<T> {
   data: T[]
@@ -46,6 +39,8 @@ export interface DataTableProps<T> {
   enableColumnResize?: boolean
   enableAIColumns?: boolean
   enableViewToggle?: boolean
+  /** Open a row detail panel when a row is clicked. */
+  enableRowDetail?: boolean
   pageSize?: number
   maxCellHeight?: number
   /** Row padding preset. Also settable from CSS via `--cek-density` on any ancestor. */
@@ -65,134 +60,28 @@ const defaultGetRowId = <T,>(row: T, index: number): string => {
   return id != null ? String(id) : String(index)
 }
 
-// AI Column Modal Component
-function AIColumnModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  rowIds,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  onSubmit: (col: Omit<AIColumn, 'id'>) => void
-  rowIds: string[]
-}) {
-  const [columnName, setColumnName] = useState('')
-  const [kind, setKind] = useState<AIColumnKind>('category')
-  const [k, setK] = useState(4)
-  const [anchor, setAnchor] = useState('')
-
-  const defaultName = kind === 'category' ? 'Category' : kind === 'outlier' ? 'Unusual' : `Similar to ${anchor || rowIds[0] || ''}`
-
-  const handleSubmit = () => {
-    onSubmit({ header: columnName.trim() || defaultName, kind, k, anchor: anchor || rowIds[0] })
-    setColumnName('')
-    onClose()
-  }
-
-  if (!isOpen) return null
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Add AI Column</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <div className="modal-body">
-          <div className="form-group">
-            <label htmlFor="ai-kind">Kind</label>
-            <select id="ai-kind" className="form-input" value={kind} onChange={e => setKind(e.target.value as AIColumnKind)}>
-              <option value="category">Categories — discover groups in the rows</option>
-              <option value="outlier">Outlier score — how unusual each row is</option>
-              <option value="similarity">Similarity — distance to one row</option>
-            </select>
-          </div>
-          {kind === 'category' && (
-            <div className="form-group">
-              <label htmlFor="ai-k">Number of groups</label>
-              <select id="ai-k" className="form-input" value={k} onChange={e => setK(Number(e.target.value))}>
-                {[2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-          )}
-          {kind === 'similarity' && (
-            <div className="form-group">
-              <label htmlFor="ai-anchor">Anchor row</label>
-              <select id="ai-anchor" className="form-input" value={anchor || rowIds[0] || ''} onChange={e => setAnchor(e.target.value)}>
-                {rowIds.map(id => <option key={id} value={id}>{id}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="form-group">
-            <label htmlFor="ai-name">Column Name</label>
-            <input
-              id="ai-name"
-              type="text"
-              value={columnName}
-              onChange={e => setColumnName(e.target.value)}
-              placeholder={defaultName}
-              className="form-input"
-            />
-          </div>
-          <p className="ai-help">Computed locally from row embeddings. No prompt, no model call.</p>
-        </div>
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={handleSubmit}>
-            <span className="ai-icon">✨</span> Add Column
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Category cell with an inline correction menu
-function CategoryCell({ engine, rowId }: { engine: EngineTable<unknown>; rowId: string }) {
-  const [open, setOpen] = useState(false)
-  const cell = engine.state.categories[rowId]
-  const space = engine.state.space
-  if (!cell || !space) return <span className="ai-cell">…</span>
-  const idx = space.categories.findIndex(c => c.value === cell.value)
-  return (
-    <span className="ai-category-wrap">
-      <button
-        type="button"
-        className={`ai-chip ${cell.flagged ? 'flagged' : ''}`}
-        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
-        title="Click to correct"
-      >
-        <i style={{ background: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }} />
-        {cell.label}
-        <small>{Math.round(cell.confidence * 100)}%{cell.flagged ? ' review' : ''}</small>
-      </button>
-      {open && (
-        <span className="ai-menu" onClick={e => e.stopPropagation()}>
-          {space.categories.map((c, i) => (
-            <button type="button" key={c.value} onClick={() => { engine.correct(rowId, c.value); setOpen(false) }}>
-              <i style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />{c.label}
-            </button>
-          ))}
-        </span>
-      )}
-    </span>
-  )
+/** Run a state change inside a view transition where the browser supports it. */
+function morph(update: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => void }
+  if (typeof doc.startViewTransition === 'function') doc.startViewTransition(() => flushSync(update))
+  else update()
 }
 
 function aiCellValue(engine: EngineTable<unknown>, col: AIColumn, rowId: string): string {
-  if (col.kind === 'outlier') return String(engine.state.outliers[rowId] ?? '…')
+  if (col.kind === 'outlier') return String(engine.state.outliers[rowId] ?? 'not computed yet')
   if (col.kind === 'similarity') {
     if (rowId === col.anchor) return 'this row'
     const a = engine.vector(col.anchor ?? '')
     const b = engine.vector(rowId)
-    if (!a || !b) return '…'
+    if (!a || !b) return 'not computed yet'
     let s = 0
     for (let i = 0; i < a.length; i++) s += a[i] * b[i]
     return s.toFixed(2)
   }
-  return engine.state.categories[rowId]?.label ?? '…'
+  return engine.state.categories[rowId]?.label ?? 'not computed yet'
 }
+
+const KIND_GLYPH: Record<AIColumn['kind'], string> = { category: '◎', outlier: '◇', similarity: '≈' }
 
 // Card View Component
 function DataCard<T>({
@@ -201,6 +90,7 @@ function DataCard<T>({
   engine,
   isSelected,
   onToggleSelect,
+  onOpen,
   enableSelection
 }: {
   row: Row<T>
@@ -208,10 +98,11 @@ function DataCard<T>({
   engine: EngineTable<unknown>
   isSelected: boolean
   onToggleSelect: () => void
+  onOpen?: () => void
   enableSelection: boolean
 }) {
   return (
-    <div className={`data-card ${isSelected ? 'selected' : ''}`}>
+    <div className={`data-card ${isSelected ? 'selected' : ''} ${onOpen ? 'clickable' : ''}`} onClick={onOpen ? (e) => { if (!isInteractive(e)) onOpen() } : undefined}>
       {enableSelection && (
         <div className="card-select">
           <Checkbox
@@ -254,6 +145,11 @@ function DataCard<T>({
   )
 }
 
+/** True when a click landed on a control, so row-level handlers should stay out of the way. */
+function isInteractive(e: ReactMouseEvent) {
+  return !!(e.target as HTMLElement).closest('button, a, input, select, label, [role="checkbox"], .ai-menu')
+}
+
 export function DataTable<T>({
   data,
   columns: initialColumns,
@@ -264,6 +160,7 @@ export function DataTable<T>({
   enableColumnResize = true,
   enableAIColumns = true,
   enableViewToggle = true,
+  enableRowDetail = true,
   pageSize = 10,
   maxCellHeight = 100,
   density = 'comfortable',
@@ -277,15 +174,10 @@ export function DataTable<T>({
   const [globalFilter, setGlobalFilter] = useState('')
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
-  // Morph between table and cards with the View Transitions API where available
-  const switchView = useCallback((mode: 'table' | 'card') => {
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => void }
-    if (typeof doc.startViewTransition === 'function') doc.startViewTransition(() => flushSync(() => setViewMode(mode)))
-    else setViewMode(mode)
-  }, [])
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [aiColumns, setAIColumns] = useState<AIColumn[]>([])
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false)
+  const [panel, setPanel] = useState<PanelState>(null)
 
   // Headless engine: one instance per table, re-encoded when data changes.
   const engine = useMemo(
@@ -302,14 +194,22 @@ export function DataTable<T>({
   )
   const untypedEngine = engine as unknown as EngineTable<unknown>
 
+  const switchView = useCallback((mode: ViewMode) => {
+    // Bands need a category space; discovery is instant, so make one on the way in.
+    if (mode === 'groups' && !engine.state.space) engine.discoverCategories(4)
+    morph(() => setViewMode(mode))
+  }, [engine])
+
+  const openPanel = useCallback((next: PanelState) => morph(() => setPanel(next)), [])
+
   // Add an engine-backed column
   const generateAIColumn = useCallback((col: Omit<AIColumn, 'id'>) => {
     if (col.kind === 'category' && !engine.state.space) engine.discoverCategories(col.k ?? 4)
     if (col.kind === 'outlier') engine.scoreOutliers()
     setAIColumns(prev => [...prev, { ...col, id: `ai-${Date.now()}` }])
-  }, [engine])
+    openPanel(null)
+  }, [engine, openPanel])
 
-  // Remove AI column
   const removeAIColumn = useCallback((columnId: string) => {
     setAIColumns(prev => prev.filter(col => col.id !== columnId))
   }, [])
@@ -321,10 +221,11 @@ export function DataTable<T>({
       id: aiCol.id,
       header: () => (
         <div className="ai-column-header">
-          <span className="ai-badge">AI</span>
+          <span className="ai-kind" aria-hidden="true">{KIND_GLYPH[aiCol.kind]}</span>
           {aiCol.header}
           <button
             className="remove-ai-column"
+            aria-label={`Remove ${aiCol.header}`}
             onClick={(e) => {
               e.stopPropagation()
               removeAIColumn(aiCol.id)
@@ -337,7 +238,7 @@ export function DataTable<T>({
       cell: ({ row }: { row: Row<T> }) =>
         aiCol.kind === 'category'
           ? <CategoryCell engine={untypedEngine} rowId={row.id} />
-          : <div className="ai-cell">{aiCellValue(untypedEngine, aiCol, row.id)}</div>,
+          : <div className="ai-cell num">{aiCellValue(untypedEngine, aiCol, row.id)}</div>,
       size: 180,
       enableSorting: false,
     }))
@@ -376,207 +277,247 @@ export function DataTable<T>({
   })
 
   const selectedCount = Object.keys(rowSelection).length
+  const rows = table.getRowModel().rows
+  const columnCount = table.getVisibleLeafColumns().length
+
+  // Bands: rows of the current page grouped by category, in the space's order.
+  const aggKey = useMemo(() => {
+    const sorted = sorting[0]?.id
+    if (sorted && engineState.profile[sorted]?.type === 'number') return sorted
+    return Object.values(engineState.profile).find(p => p.type === 'number')?.key
+  }, [sorting, engineState.profile])
+  const bands = useMemo(() => {
+    const space = engineState.space
+    if (!space) return []
+    const byValue: Record<string, Row<T>[]> = {}
+    for (const r of rows) (byValue[engineState.categories[r.id]?.value ?? space.fallback] ??= []).push(r)
+    return space.categories
+      .map((c, i) => {
+        const members = byValue[c.value] ?? []
+        const mean = aggKey && members.length
+          ? members.reduce((s, r) => s + Number((r.original as Record<string, unknown>)[aggKey] ?? 0), 0) / members.length
+          : null
+        return { ...c, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length], members, mean }
+      })
+      .filter(b => b.members.length > 0)
+  }, [rows, engineState.space, engineState.categories, aggKey])
+
+  const toggleBand = (value: string) => setCollapsed(prev => {
+    const next = new Set(prev)
+    if (next.has(value)) next.delete(value)
+    else next.add(value)
+    return next
+  })
+
+  const onRowClick = enableRowDetail
+    ? (rowId: string) => (e: ReactMouseEvent) => { if (!isInteractive(e)) openPanel({ kind: 'row', rowId }) }
+    : () => undefined
+
+  const renderRow = (row: Row<T>) => (
+    <tr
+      key={row.id}
+      className={`${row.getIsSelected() ? 'selected' : ''} ${panel?.kind === 'row' && panel.rowId === row.id ? 'open' : ''} ${enableRowDetail ? 'clickable' : ''}`}
+      onClick={onRowClick(row.id)}
+    >
+      {row.getVisibleCells().map((cell) => (
+        <td
+          key={cell.id}
+          data-column-id={cell.column.id}
+          data-type={engineState.profile[cell.column.id]?.type}
+          style={{ width: cell.column.getSize(), maxHeight: maxCellHeight }}
+        >
+          <div className="cell-content" style={{ maxHeight: maxCellHeight }}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </div>
+        </td>
+      ))}
+    </tr>
+  )
+
+  const header = (
+    <thead>
+      {table.getHeaderGroups().map((headerGroup) => (
+        <tr key={headerGroup.id}>
+          {headerGroup.headers.map((header) => (
+            <th
+              key={header.id}
+              data-column-id={header.column.id}
+              data-type={engineState.profile[header.column.id]?.type}
+              className={header.column.getCanSort() ? 'sortable' : ''}
+              style={{ width: header.getSize(), position: 'relative' }}
+            >
+              <div
+                className="th-content"
+                onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+              >
+                {flexRender(header.column.columnDef.header, header.getContext())}
+                {header.column.getIsSorted() && (
+                  <span className="sort-indicator">
+                    {header.column.getIsSorted() === 'asc' ? ' ↑' : ' ↓'}
+                  </span>
+                )}
+              </div>
+              {enableColumnResize && header.column.getCanResize() && (
+                <div
+                  onMouseDown={header.getResizeHandler()}
+                  onTouchStart={header.getResizeHandler()}
+                  className={`resize-handle ${header.column.getIsResizing() ? 'resizing' : ''}`}
+                />
+              )}
+            </th>
+          ))}
+        </tr>
+      ))}
+    </thead>
+  )
 
   return (
-    <div className="data-table-container" data-density={density}>
-      {/* Toolbar */}
-      <div className="table-toolbar">
-        <div className="toolbar-left">
-          {enableFiltering && (
-            <input
-              type="text"
-              placeholder="Search all columns..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="global-filter"
-            />
-          )}
-          {enableRowSelection && selectedCount > 0 && (
-            <span className="selection-info">
-              {selectedCount} row{selectedCount > 1 ? 's' : ''} selected
-            </span>
-          )}
+    <div className={`data-table-container ${panel ? 'has-panel' : ''}`} data-density={density}>
+      <div className="table-main">
+        {/* Toolbar */}
+        <div className="table-toolbar">
+          <div className="toolbar-left">
+            {enableFiltering && (
+              <input
+                type="text"
+                placeholder="Search all columns..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                className="global-filter"
+              />
+            )}
+          </div>
+          <div className="toolbar-right">
+            {enableAIColumns && (
+              <button
+                className={`btn-ai ${panel?.kind === 'add' ? 'active' : ''}`}
+                onClick={() => openPanel(panel?.kind === 'add' ? null : { kind: 'add' })}
+                aria-pressed={panel?.kind === 'add'}
+              >
+                <span className="ai-icon">✨</span>
+                Add AI Column
+              </button>
+            )}
+            {enableViewToggle && (
+              <div className="view-toggle" role="radiogroup" aria-label="View">
+                <button className={`view-btn ${viewMode === 'table' ? 'active' : ''}`} onClick={() => switchView('table')} title="Table" role="radio" aria-checked={viewMode === 'table'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <button className={`view-btn ${viewMode === 'groups' ? 'active' : ''}`} onClick={() => switchView('groups')} title="Grouped by category" role="radio" aria-checked={viewMode === 'groups'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="4" rx="2"/>
+                    <path d="M7 12h12M7 16h12" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <button className={`view-btn ${viewMode === 'card' ? 'active' : ''}`} onClick={() => switchView('card')} title="Cards" role="radio" aria-checked={viewMode === 'card'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="toolbar-right">
-          {enableAIColumns && (
-            <button
-              className="btn-ai"
-              onClick={() => setIsAIModalOpen(true)}
-            >
-              <span className="ai-icon">✨</span>
-              Add AI Column
-            </button>
-          )}
-          {enableViewToggle && (
-            <div className="view-toggle">
-              <button
-                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                onClick={() => switchView('table')}
-                title="Table View"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <path d="M3 9h18M3 15h18M9 3v18"/>
-                </svg>
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'card' ? 'active' : ''}`}
-                onClick={() => switchView('card')}
-                title="Card View"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="7" height="7" rx="1"/>
-                  <rect x="14" y="3" width="7" height="7" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1"/>
-                  <rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-              </button>
+
+        {/* Table View */}
+        {viewMode === 'table' && (
+          <div className="table-wrapper">
+            <table className="data-table" style={{ width: table.getCenterTotalSize() }}>
+              {header}
+              <tbody>{rows.map(renderRow)}</tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Bands View: one tinted header per discovered category */}
+        {viewMode === 'groups' && (
+          <div className="table-wrapper">
+            <table className="data-table banded" style={{ width: table.getCenterTotalSize() }}>
+              {header}
+              {bands.map(band => (
+                <tbody key={band.value} className={collapsed.has(band.value) ? 'collapsed' : ''}>
+                  <tr className="band" style={{ ['--band' as string]: band.color }}>
+                    <td colSpan={columnCount}>
+                      <button type="button" className="band-toggle" onClick={() => toggleBand(band.value)} aria-expanded={!collapsed.has(band.value)}>
+                        <span className="caret" aria-hidden="true">▾</span>
+                        <i className="band-dot" />
+                        <span className="band-label">{band.label}</span>
+                        <span className="band-count num">{band.members.length}</span>
+                        {band.mean != null && aggKey && (
+                          <span className="band-agg num">mean {aggKey} {Number.isInteger(band.mean) ? band.mean : band.mean.toFixed(1)}</span>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                  {!collapsed.has(band.value) && band.members.map(renderRow)}
+                </tbody>
+              ))}
+            </table>
+          </div>
+        )}
+
+        {/* Card View */}
+        {viewMode === 'card' && (
+          <div className="cards-grid">
+            {rows.map((row) => (
+              <DataCard
+                key={row.id}
+                row={row}
+                aiColumns={aiColumns}
+                engine={untypedEngine}
+                isSelected={row.getIsSelected()}
+                onToggleSelect={() => row.toggleSelected()}
+                onOpen={enableRowDetail ? () => openPanel({ kind: 'row', rowId: row.id }) : undefined}
+                enableSelection={enableRowSelection}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {enablePagination && (
+          <div className="pagination">
+            <div className="pagination-info num">
+              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}{' '}
+              of {table.getFilteredRowModel().rows.length} entries
             </div>
-          )}
-        </div>
+            <div className="pagination-controls">
+              <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} aria-label="First page">{'<<'}</button>
+              <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Previous page">{'<'}</button>
+              <span className="page-info num">
+                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+              </span>
+              <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Next page">{'>'}</button>
+              <button onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} aria-label="Last page">{'>>'}</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Table View */}
-      {viewMode === 'table' && (
-        <div className="table-wrapper">
-          <table className="data-table" style={{ width: table.getCenterTotalSize() }}>
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      data-column-id={header.column.id}
-                      className={header.column.getCanSort() ? 'sortable' : ''}
-                      style={{
-                        width: header.getSize(),
-                        position: 'relative',
-                      }}
-                    >
-                      <div
-                        className="th-content"
-                        onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() && (
-                          <span className="sort-indicator">
-                            {header.column.getIsSorted() === 'asc' ? ' ↑' : ' ↓'}
-                          </span>
-                        )}
-                      </div>
-                      {enableColumnResize && header.column.getCanResize() && (
-                        <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          className={`resize-handle ${header.column.getIsResizing() ? 'resizing' : ''}`}
-                        />
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={row.getIsSelected() ? 'selected' : ''}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      data-column-id={cell.column.id}
-                      style={{
-                        width: cell.column.getSize(),
-                        maxHeight: maxCellHeight,
-                      }}
-                    >
-                      <div
-                        className="cell-content"
-                        style={{ maxHeight: maxCellHeight }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* One slot on the right: add-column setup or row detail, never both */}
+      {panel?.kind === 'add' && (
+        <AddColumnPanel engine={untypedEngine} rowIds={engineState.rowIds} onAdd={generateAIColumn} onClose={() => openPanel(null)} />
+      )}
+      {panel?.kind === 'row' && (
+        <RowDetailPanel engine={untypedEngine} rowId={panel.rowId} onSelectRow={(id) => setPanel({ kind: 'row', rowId: id })} onClose={() => openPanel(null)} />
       )}
 
-      {/* Card View */}
-      {viewMode === 'card' && (
-        <div className="cards-grid">
-          {table.getRowModel().rows.map((row) => (
-            <DataCard
-              key={row.id}
-              row={row}
-              aiColumns={aiColumns}
-              engine={untypedEngine}
-              isSelected={row.getIsSelected()}
-              onToggleSelect={() => row.toggleSelected()}
-              enableSelection={enableRowSelection}
-            />
-          ))}
+      {/* Floating selection bar */}
+      {enableRowSelection && selectedCount > 0 && (
+        <div className="selection-bar" role="status">
+          <span className="num">{selectedCount} selected</span>
+          <button type="button" onClick={() => table.resetRowSelection()}>Clear</button>
         </div>
       )}
-
-      {/* Pagination */}
-      {enablePagination && (
-        <div className="pagination">
-          <div className="pagination-info">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            of {table.getFilteredRowModel().rows.length} entries
-          </div>
-          <div className="pagination-controls">
-            <button
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="secondary"
-            >
-              {'<<'}
-            </button>
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="secondary"
-            >
-              {'<'}
-            </button>
-            <span className="page-info">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-            </span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="secondary"
-            >
-              {'>'}
-            </button>
-            <button
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="secondary"
-            >
-              {'>>'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* AI Column Modal */}
-      <AIColumnModal
-        isOpen={isAIModalOpen}
-        onClose={() => setIsAIModalOpen(false)}
-        onSubmit={generateAIColumn}
-        rowIds={engineState.rowIds}
-      />
     </div>
   )
 }

@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     dts({
       tsconfigPath: './tsconfig.app.json',
-      include: ['src/index.ts', 'src/components/DataTable.tsx', 'src/components/Checkbox.tsx', 'src/core/**/*.ts'],
+      include: ['src/index.ts', 'src/components/**/*.ts', 'src/components/**/*.tsx', 'src/core/**/*.ts'],
       exclude: ['src/core/__tests__/**'],
       outDir: 'dist/lib',
       insertTypesEntry: true,
