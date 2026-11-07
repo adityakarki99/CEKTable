@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useSyncExternalStore } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { flushSync } from 'react-dom'
 import {
@@ -18,11 +18,12 @@ import type {
   Row,
 } from '@tanstack/react-table'
 import { Checkbox } from './Checkbox'
-import { CategoryCell } from './CategoryCell'
+import { AIColumnCell } from './AIColumnCell'
+import { AI_COLUMN_KINDS } from './aiColumns'
 import { AddColumnPanel, RowDetailPanel } from './SidePanel'
 import type { PanelState } from './SidePanel'
-import { createTable } from '../core'
-import type { EngineState, EngineTable, Encoder } from '../core'
+import { useEngine, useEngineState } from './useEngine'
+import type { EngineTable, Encoder } from '../core'
 import { CATEGORY_COLORS } from './types'
 import type { AIColumn, ViewMode } from './types'
 import './table.css'
@@ -66,22 +67,6 @@ function morph(update: () => void) {
   if (typeof doc.startViewTransition === 'function') doc.startViewTransition(() => flushSync(update))
   else update()
 }
-
-function aiCellValue(engine: EngineTable<unknown>, col: AIColumn, rowId: string): string {
-  if (col.kind === 'outlier') return String(engine.state.outliers[rowId] ?? 'not computed yet')
-  if (col.kind === 'similarity') {
-    if (rowId === col.anchor) return 'this row'
-    const a = engine.vector(col.anchor ?? '')
-    const b = engine.vector(rowId)
-    if (!a || !b) return 'not computed yet'
-    let s = 0
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i]
-    return s.toFixed(2)
-  }
-  return engine.state.categories[rowId]?.label ?? 'not computed yet'
-}
-
-const KIND_GLYPH: Record<AIColumn['kind'], string> = { category: '◎', outlier: '◇', similarity: '≈' }
 
 // Card View Component
 function DataCard<T>({
@@ -136,7 +121,7 @@ function DataCard<T>({
               {aiCol.header}
             </span>
             <span className="card-value">
-              {aiCol.kind === 'category' ? <CategoryCell engine={engine} rowId={row.id} /> : aiCellValue(engine, aiCol, row.id)}
+              <AIColumnCell engine={engine} column={aiCol} rowId={row.id} />
             </span>
           </div>
         ))}
@@ -180,19 +165,9 @@ export function DataTable<T>({
   const [panel, setPanel] = useState<PanelState>(null)
 
   // Headless engine: one instance per table, re-encoded when data changes.
-  const engine = useMemo(
-    () => createTable<T & object>({ data: data as (T & object)[], getRowId: getRowId as (row: T & object, i: number) => string, encoder, exclude: excludeFromEncoding }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [encoder, getRowId, excludeFromEncoding]
-  )
-  useEffect(() => { if (engine.rows !== data) engine.setData(data as (T & object)[]) }, [engine, data])
-  useEffect(() => { onEngine?.(engine as unknown as EngineTable<T>) }, [engine, onEngine])
-  const engineState: EngineState = useSyncExternalStore(
-    useCallback((cb: () => void) => engine.subscribe(cb), [engine]),
-    () => engine.state,
-    () => engine.state
-  )
+  const engine = useEngine({ data, getRowId, encoder, exclude: excludeFromEncoding, onEngine })
   const untypedEngine = engine as unknown as EngineTable<unknown>
+  const engineState = useEngineState(untypedEngine)
 
   const switchView = useCallback((mode: ViewMode) => {
     // Bands need a category space; discovery is instant, so make one on the way in.
@@ -204,11 +179,10 @@ export function DataTable<T>({
 
   // Add an engine-backed column
   const generateAIColumn = useCallback((col: Omit<AIColumn, 'id'>) => {
-    if (col.kind === 'category' && !engine.state.space) engine.discoverCategories(col.k ?? 4)
-    if (col.kind === 'outlier') engine.scoreOutliers()
+    AI_COLUMN_KINDS[col.kind].prepare?.(untypedEngine, col)
     setAIColumns(prev => [...prev, { ...col, id: `ai-${Date.now()}` }])
     openPanel(null)
-  }, [engine, openPanel])
+  }, [untypedEngine, openPanel])
 
   const removeAIColumn = useCallback((columnId: string) => {
     setAIColumns(prev => prev.filter(col => col.id !== columnId))
@@ -221,7 +195,7 @@ export function DataTable<T>({
       id: aiCol.id,
       header: () => (
         <div className="ai-column-header">
-          <span className="ai-kind" aria-hidden="true">{KIND_GLYPH[aiCol.kind]}</span>
+          <span className="ai-kind" aria-hidden="true">{AI_COLUMN_KINDS[aiCol.kind].glyph}</span>
           {aiCol.header}
           <button
             className="remove-ai-column"
@@ -235,16 +209,12 @@ export function DataTable<T>({
           </button>
         </div>
       ),
-      cell: ({ row }: { row: Row<T> }) =>
-        aiCol.kind === 'category'
-          ? <CategoryCell engine={untypedEngine} rowId={row.id} />
-          : <div className="ai-cell num">{aiCellValue(untypedEngine, aiCol, row.id)}</div>,
+      // The cell subscribes to the engine itself, so these renderers stay stable.
+      cell: ({ row }: { row: Row<T> }) => <AIColumnCell engine={untypedEngine} column={aiCol} rowId={row.id} />,
       size: 180,
       enableSorting: false,
     }))
-    // engineState.version forces fresh cell renderers after any engine change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [initialColumns, aiColumns, removeAIColumn, untypedEngine, engineState.version])
+  ], [initialColumns, aiColumns, removeAIColumn, untypedEngine])
 
   const table = useReactTable({
     data,

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import type { EngineTable } from '../core'
 import { CATEGORY_COLORS } from './types'
+import { useEngineState } from './useEngine'
 
 /** Category chip with an inline correction menu. Dot first, label, faint confidence. */
 export function CategoryCell({ engine, rowId }: { engine: EngineTable<unknown>; rowId: string }) {
   const [open, setOpen] = useState(false)
-  const cell = engine.state.categories[rowId]
-  const space = engine.state.space
+  const { categories, space } = useEngineState(engine)
+  const cell = categories[rowId]
   if (!cell || !space) return <span className="ai-cell">not computed yet</span>
   const idx = space.categories.findIndex(c => c.value === cell.value)
   return (
