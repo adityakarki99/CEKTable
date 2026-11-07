@@ -40,6 +40,8 @@ export interface EngineTable<T> {
   loadCategories(space: CategorySpace): void
   correct(rowId: string, value: string): void
   scoreOutliers(): Record<string, number>
+  /** Cosine similarity between two rows' vectors; undefined if either row is unknown. */
+  similarity(a: string, b: string): number | undefined
   neighbors(rowId: string, k?: number): Neighbor[]
   recommendCharts(opts?: { max?: number }): ChartResult[]
   chart(opts: { x: string; y?: string }): ChartResult
@@ -146,6 +148,11 @@ export function createTable<T extends object>(opts: CreateTableOptions<T>): Engi
       rescore()
       emit()
       return state.outliers
+    },
+    similarity(a, b) {
+      const va = vectors[a]
+      const vb = vectors[b]
+      return va && vb ? dot(va, vb) : undefined
     },
     neighbors(rowId, k = 5) {
       const v = vectors[rowId]

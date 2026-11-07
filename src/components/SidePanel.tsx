@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import type { EngineTable, ChartResult } from '../core'
 import { CATEGORY_KEY } from '../core'
 import { CategoryCell } from './CategoryCell'
-import { CATEGORY_COLORS } from './types'
+import { AI_COLUMN_KINDS, AI_COLUMN_KIND_ORDER } from './aiColumns'
+import type { AIColumnOptions } from './aiColumns'
+import { useEngineState } from './useEngine'
 import type { AIColumn, AIColumnKind } from './types'
 
 /** Which panel occupies the single right-hand slot. */
@@ -15,29 +17,18 @@ interface AddColumnPanelProps {
   onClose: () => void
 }
 
-/** Column setup beside the data, with a live preview of the groups it would create. */
+/** Column setup beside the data. Kind-specific controls come from the AI column registry. */
 export function AddColumnPanel({ engine, rowIds, onAdd, onClose }: AddColumnPanelProps) {
   const [kind, setKind] = useState<AIColumnKind>('category')
-  const [k, setK] = useState(engine.state.space?.categories.length ?? 4)
-  const [anchor, setAnchor] = useState(rowIds[0] ?? '')
+  const [options, setOptions] = useState<AIColumnOptions>(() => ({
+    k: engine.state.space?.categories.length ?? 4,
+    anchor: rowIds[0] ?? '',
+  }))
   const [name, setName] = useState('')
 
-  const defaultName = kind === 'category' ? 'Category' : kind === 'outlier' ? 'Unusual' : `Similar to ${anchor}`
-
-  // Live preview: discovery is instant, so apply it as the control changes.
-  const applyK = (n: number) => {
-    setK(n)
-    engine.discoverCategories(n)
-  }
-  const space = engine.state.space
-  const counts = useMemo(() => {
-    const out: Record<string, number> = {}
-    for (const id of engine.state.rowIds) {
-      const v = engine.state.categories[id]?.value
-      if (v) out[v] = (out[v] ?? 0) + 1
-    }
-    return out
-  }, [engine.state.rowIds, engine.state.categories])
+  const def = AI_COLUMN_KINDS[kind]
+  const defaultName = def.defaultName(options)
+  const Options = def.Options
 
   return (
     <div className="side-panel" role="dialog" aria-label="Add AI column">
@@ -47,49 +38,15 @@ export function AddColumnPanel({ engine, rowIds, onAdd, onClose }: AddColumnPane
       </div>
       <div className="panel-body">
         <div className="seg" role="radiogroup" aria-label="Column kind">
-          {(['category', 'outlier', 'similarity'] as AIColumnKind[]).map(kd => (
+          {AI_COLUMN_KIND_ORDER.map(kd => (
             <button type="button" key={kd} role="radio" aria-checked={kind === kd} className={kind === kd ? 'active' : ''} onClick={() => setKind(kd)}>
-              {kd === 'category' ? 'Categories' : kd === 'outlier' ? 'Outlier score' : 'Similarity'}
+              {AI_COLUMN_KINDS[kd].label}
             </button>
           ))}
         </div>
-        <p className="panel-help">
-          {kind === 'category' && 'Groups rows by how alike they are. Click any chip later to correct it.'}
-          {kind === 'outlier' && 'Scores each row 0–100 by distance from its own group.'}
-          {kind === 'similarity' && 'Scores every row by closeness to one anchor row.'}
-        </p>
-        {kind === 'category' && (
-          <>
-            <div className="form-group">
-              <label htmlFor="ai-k">Groups</label>
-              <div className="stepper" id="ai-k">
-                {[2, 3, 4, 5, 6].map(n => (
-                  <button type="button" key={n} className={k === n ? 'active' : ''} onClick={() => applyK(n)}>{n}</button>
-                ))}
-              </div>
-            </div>
-            {space ? (
-              <ul className="preview-list" aria-label="Preview of groups">
-                {space.categories.map((c, i) => (
-                  <li key={c.value}>
-                    <i style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                    <span className="label">{c.label}</span>
-                    <span className="count">{counts[c.value] ?? 0}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <button type="button" className="btn-secondary" onClick={() => applyK(k)}>Preview groups</button>
-            )}
-          </>
-        )}
-        {kind === 'similarity' && (
-          <div className="form-group">
-            <label htmlFor="ai-anchor">Anchor row</label>
-            <select id="ai-anchor" className="form-input" value={anchor} onChange={e => setAnchor(e.target.value)}>
-              {rowIds.map(id => <option key={id} value={id}>{id}</option>)}
-            </select>
-          </div>
+        <p className="panel-help">{def.help}</p>
+        {Options && (
+          <Options engine={engine} rowIds={rowIds} options={options} onChange={patch => setOptions(o => ({ ...o, ...patch }))} />
         )}
         <div className="form-group">
           <label htmlFor="ai-name">Column name</label>
@@ -98,7 +55,7 @@ export function AddColumnPanel({ engine, rowIds, onAdd, onClose }: AddColumnPane
       </div>
       <div className="panel-foot">
         <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-        <button type="button" className="btn-primary" onClick={() => onAdd({ header: name.trim() || defaultName, kind, k, anchor })}>
+        <button type="button" className="btn-primary" onClick={() => onAdd({ header: name.trim() || defaultName, kind, ...options })}>
           Add column
         </button>
       </div>
@@ -115,18 +72,22 @@ interface RowDetailPanelProps {
 
 /** A row's fields, its nearest rows, why it got its category, and one chart. */
 export function RowDetailPanel({ engine, rowId, onSelectRow, onClose }: RowDetailPanelProps) {
-  const idx = engine.state.rowIds.indexOf(rowId)
-  const row = (engine.rows[idx] ?? {}) as Record<string, unknown>
-  const profile = engine.state.profile
-  const space = engine.state.space
-  const cell = engine.state.categories[rowId]
-  const outlier = engine.state.outliers[rowId]
-  const neighbors = useMemo(() => engine.neighbors(rowId, 5), [engine, rowId])
+  const state = useEngineState(engine)
+  const { profile, space } = state
+  const row = (engine.rows[state.rowIds.indexOf(rowId)] ?? {}) as Record<string, unknown>
+  const cell = state.categories[rowId]
+  const outlier = state.outliers[rowId]
+  const neighbors = useMemo(
+    () => engine.neighbors(rowId, 5),
+    // Vectors change only on re-encode, which bumps the version.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, rowId, state.rowIds]
+  )
   const numericKey = Object.values(profile).find(p => p.type === 'number')?.key
   const chart: ChartResult | null = useMemo(
     () => (space && numericKey ? engine.chart({ x: CATEGORY_KEY, y: numericKey }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [engine, space, numericKey, engine.state.version]
+    [engine, space, numericKey, state.version]
   )
   const nameKey = Object.values(profile).find(p => p.type === 'text' || p.type === 'id')?.key
   const title = nameKey ? String(row[nameKey]) : rowId

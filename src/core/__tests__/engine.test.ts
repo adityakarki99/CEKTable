@@ -130,4 +130,11 @@ describe('createTable', () => {
     t.setData(rows)
     expect(calls).toBe(1)
   })
+
+  it('scores similarity between two rows', () => {
+    const t = make()
+    expect(t.similarity('A1', 'A1')).toBeCloseTo(1, 5)
+    expect(t.similarity('A1', 'A4')!).toBeGreaterThan(t.similarity('A1', 'B2')!)
+    expect(t.similarity('A1', 'nope')).toBeUndefined()
+  })
 })
